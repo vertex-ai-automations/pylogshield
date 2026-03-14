@@ -24,7 +24,7 @@ theme:
     # Light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: deep purple
+      primary: indigo
       accent: amber
       toggle:
         icon: material/brightness-7
@@ -32,7 +32,7 @@ theme:
     # Dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: deep purple
+      primary: indigo
       accent: amber
       toggle:
         icon: material/brightness-4
