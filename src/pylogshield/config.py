@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 import threading
-from typing import FrozenSet, Iterable, Set
+from typing import FrozenSet, Iterable, Optional, Set
 
 # Default sensitive identifiers (case-insensitive key match)
 # These field names will trigger automatic masking when found in log messages
@@ -31,14 +31,26 @@ SENSITIVE_FIELDS: Set[str] = {
     "client_secret",
     "private_key",
     "secret_key",
-    # "credentials", this line breaks the code causing str issue.
     "session_token",
+    # Additional sensitive fields
+    "credit_card",
+    "creditcard",
+    "card_number",
+    "ssn",
+    "social_security",
+    "cvv",
+    "pin",
+    "encryption_key",
+    "jwt",
+    "cookie",
+    "session_id",
+    "sessionid",
 }
 
 SENSITIVE_LOCK = threading.RLock()
 
 # Cache for compiled regex. Invalidate whenever fields change.
-__pattern_cache: re.Pattern[str] | None = None
+__pattern_cache: Optional["re.Pattern[str]"] = None
 
 
 def get_sensitive_pattern() -> re.Pattern[str]:
