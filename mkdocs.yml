@@ -1,0 +1,168 @@
+site_name: PyLogShield
+site_description: A Python logging library designed for data professionals and developers who need reliable, secure logging with minimal setup.
+site_author: Vertex AI Automations
+site_dir: public
+site_url: https://vertex-ai-automations.github.io/pylogshield
+
+# Repository configuration
+repo_name: PyLogShield
+repo_url: https://github.com/vertex-ai-automations/pylogshield
+edit_uri: edit/main/docs/  # Link to edit the documentation
+
+theme:
+  name: material
+  logo: img/pylogshield_192x192.png # Path to your logo (optional)
+  favicon: img/favicon/favicon.ico  # Path to your favicon (optional)
+  language: en # Language (used for accessibility)
+  # static_templates:
+  #  - 404.html           # enable custom 404
+  icon:
+    logo: material/dog-service
+    repo: fontawesome/brands/gitlab
+    edit: material/pencil
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to system preference
+  font:
+    text: Roboto
+    code: Fira Code
+  features:
+    - navigation.instant # No full page reloads
+    - navigation.top # "Back to top" arrow
+    # - navigation.tabs # Horizontal tabs for top-level nav
+    # - navigation.sections # Collapsible left nav
+    - navigation.expand # Expand all nav by default
+    # - toc.integrate  # Integrate table of contents on side
+    - search.highlight # Highlight search terms
+    - search.suggest # Show suggestions when searching
+    - search.share
+    - content.code.copy # Copy-to-clipboard for code blocks
+    - content.code.annotate # Annotate code blocks with `# (1)`
+    - content.action.edit # "Edit this page" links
+    - header.autohide # Hide top header on scroll
+    - navigation.path
+    # - navigation.tabs
+    - content.tabs.link
+    - search.highlight
+    - search.share
+    - search.suggest
+
+  footer:
+    copyright:
+      text: '© 2026 Muhamamd Hassan. MIT License.'
+      link: 'https://github.com/vertex-ai-automations/pylogshield'
+      
+# Navigation
+nav:
+  - 📄Overview: 'index.md'
+  - 🚀Getting Started:
+      - Installation: 'installation.md'
+      - Basic Usage: 'usage.md'
+      - CLI Usage: 'cli_usage.md'
+  - ⚙️API Reference:
+      - PyLogShield: 'references/logger.md'
+      - LogViewer: 'references/viewer.md'
+      - Utilities: 'references/utils.md'
+      - Filters: 'references/filters.md'
+      - Handlers: 'references/handlers.md'
+      - Configuration: 'references/config.md'
+
+# Plugins
+plugins:
+    - search
+    - git-authors
+    - git-revision-date-localized:
+        enable_creation_date: true
+    - autorefs:
+        resolve_closest: true
+    - mkdocstrings:
+        handlers:
+          python:
+            paths: [src]
+            options:
+              backlinks: tree
+              docstring_style: numpy
+              show_docstring_parameters: true
+              show_docstring_returns: true
+              show_docstring_raises: true
+              docstring_options:
+                ignore_init_summary: true
+              docstring_section_style: table
+              filters: ["!^_"]
+              heading_level: 2
+              # inherited_members: true
+              merge_init_into_class: true
+              parameter_headings: true
+              preload_modules: [mkdocstrings]
+              allow_inspection: true
+              relative_crossrefs: true
+              scoped_crossrefs: true
+              separate_signature: true
+              # show_labels: false
+              members_order: source
+              show_bases: false
+              show_inheritance_diagram: true
+              show_root_heading: true
+              show_root_full_path: false
+              show_signature: true
+              show_signature_annotations: true
+              show_source: true
+              show_symbol_type_heading: true
+              show_symbol_type_toc: true
+              signature_crossrefs: true
+              summary: true
+              unwrap_annotated: true
+
+# Extensions
+markdown_extensions:
+  - abbr
+  - admonition # Adds support for admonitions (e.g., notes, warnings)
+  - attr_list # Allows to add html and css attributes
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc: # Adds a table of contents
+      permalink: true # Adds a link icon next to headings
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji: # Adds support for emojis
+  - pymdownx.highlight:
+  - pymdownx.inlinehilite # Adds syntax highlighting for code blocks (Part of mkdocs-materials)
+  - pymdownx.keys
+  - pymdownx.magiclink:
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences: # Adds support for nested code blocks
+  - pymdownx.tabbed:
+  - pymdownx.tasklist: # Adds support for task lists
+      custom_checkbox: true
+  - pymdownx.tilde
+  - pymdownx.snippets
+
+# Customization
+extra_css:
+    - css/extra.css
+
+exclude_docs: |
+    *.py
+    
+# Build options
+strict: true  # Fail the build on warnings
+use_directory_urls: true  # Use directory URLs (e.g., /page/ instead of /page.html)
+

@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pylogshield" 
+description = "A Python logging library designed for data professionals and developers who need reliable, secure logging with minimal setup."
+authors = [
+    {name = "Vertex AI Automations", email = "info@vertexaiautomations.com"}
+]
+readme = "README.md"
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Logging",
+    "Typing :: Typed",
+]
+requires-python = ">=3.8"
+keywords = ["logger", "automation", "package", "custom", "security"]
+
+dynamic = ["version", "dependencies"]
+license = 'MIT'
+license-files = ['LICENSE']
+
+[project.urls]
+homepage = "https://www.vertexaiautomations.com"
+documentation = "https://vertex-ai-automations.github.io/pylogshield"
+repository = 'https://github.com/vertex-ai-automations/pylogshield'
+issues = "https://github.com/vertex-ai-automations/pylogshield/issues/new"
+
+[project.scripts]
+pylogshield = "pylogshield.__main__:main"
+
+# version and requirements are dynamically pulled from setup.py. We may enable this in future if setup.py gets deprecated
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools_scm]
+# Auto generate _version.py with the corresponding git tag
+version_file = "src/pylogshield/_version.py"
+
