@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 import logging
 from pathlib import Path
@@ -11,15 +12,8 @@ import pytest
 
 from pylogshield import PyLogShield, get_logger
 from pylogshield.config import add_sensitive_fields
+from tests.conftest import close_logger
 
-
-def close_logger(logger: PyLogShield) -> None:
-    """Properly close a logger and release all file handles."""
-    for handler in logger.handlers[:]:
-        handler.close()
-        logger.removeHandler(handler)
-    logger.shutdown()
-    logging.Logger.manager.loggerDict.pop(logger.name, None)
 
 
 class TestPyLogShieldBasic:
@@ -334,3 +328,30 @@ class TestPyLogShieldFromConfig:
         logger = PyLogShield.from_config("test_config_filter", config)
         assert logger is not None
         close_logger(logger)
+
+
+class TestExceptionMasking:
+    """Tests for exception argument masking."""
+
+    def test_mask_exception_args(self, basic_logger: PyLogShield) -> None:
+        """Test that exception args are masked when mask=True."""
+        stream = io.StringIO()
+        handler = logging.StreamHandler(stream)
+        handler.setLevel(logging.DEBUG)
+        basic_logger.addHandler(handler)
+        try:
+            try:
+                raise ValueError("password=supersecret")
+            except ValueError:
+                basic_logger.exception("auth error", mask=True)
+        finally:
+            basic_logger.removeHandler(handler)
+            handler.close()
+
+        output = stream.getvalue()
+        # The exception repr (e.g. "ValueError: password=supersecret") must be masked.
+        # Traceback source-code lines are formatter output and cannot be redacted
+        # by masking — they reflect the literal source text, not the exception value.
+        assert "ValueError: password=supersecret" not in output
+        # The masked form should appear instead
+        assert "ValueError:" in output

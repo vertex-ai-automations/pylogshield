@@ -32,6 +32,22 @@
     pipenv install pylogshield
     ```
 
+## Dependency Graph
+
+```mermaid
+graph LR
+    PLS["pylogshield"]
+    RICH["rich\nConsole output & viewer"]
+    TYPER["typer\nCLI interface"]
+    STARLETTE["starlette\nFastAPI middleware\n(optional)"]
+
+    PLS -->|required| RICH
+    PLS -->|required| TYPER
+    PLS -->|"pip install pylogshield[fastapi]"| STARLETTE
+
+    style STARLETTE stroke-dasharray: 5 5
+```
+
 ## Upgrade
 
 To upgrade to the latest version:
@@ -66,7 +82,7 @@ Commands:
 
 ## Dependencies
 
-PyLogShield has minimal dependencies:
+PyLogShield has minimal mandatory dependencies:
 
 | Package | Purpose |
 |---------|---------|
@@ -74,6 +90,13 @@ PyLogShield has minimal dependencies:
 | `typer` | CLI interface |
 
 These are installed automatically when you install PyLogShield.
+
+## Optional Extras
+
+| Extra | Command | Adds |
+|-------|---------|------|
+| `fastapi` | `pip install "pylogshield[fastapi]"` | `PyLogShieldMiddleware` for FastAPI/Starlette |
+| `all` | `pip install "pylogshield[all]"` | All optional dependencies |
 
 ## Development Installation
 

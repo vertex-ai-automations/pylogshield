@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from collections import Counter
 from typing import Any, Dict
@@ -29,6 +30,7 @@ class LogMetricsHandler(logging.Handler):
 
     def __init__(self) -> None:
         super().__init__()
+        self._lock = threading.Lock()
         self._counts: Counter[str] = Counter()
         self._start = time.monotonic()
 
@@ -40,7 +42,8 @@ class LogMetricsHandler(logging.Handler):
         record : logging.LogRecord
             The log record to count.
         """
-        self._counts[record.levelname] += 1
+        with self._lock:
+            self._counts[record.levelname] += 1
 
     def counts(self) -> Dict[str, int]:
         """Return counts by level.
@@ -84,14 +87,15 @@ class LogMetricsHandler(logging.Handler):
             - ``elapsed``: Elapsed time in seconds
             - ``start``: Start timestamp (monotonic)
         """
-        elapsed = max(1e-9, self.elapsed_seconds())
-        rates: Dict[str, Any] = {
-            lvl: cnt / elapsed for lvl, cnt in self._counts.items()
-        }
-        rates["count"] = self.total_count()
-        rates["elapsed"] = elapsed
-        rates["start"] = self._start
-        return rates
+        with self._lock:
+            elapsed = max(1e-9, self.elapsed_seconds())
+            rates: Dict[str, Any] = {
+                lvl: cnt / elapsed for lvl, cnt in self._counts.items()
+            }
+            rates["count"] = sum(self._counts.values())
+            rates["elapsed"] = elapsed
+            rates["start"] = self._start
+            return rates
 
     def reset(self) -> None:
         """Reset counters and timing.
@@ -99,8 +103,9 @@ class LogMetricsHandler(logging.Handler):
         Clears all level counts and restarts the elapsed time measurement.
         Useful for testing or periodic metric snapshots.
         """
-        self._counts.clear()
-        self._start = time.monotonic()
+        with self._lock:
+            self._counts.clear()
+            self._start = time.monotonic()
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(total={self.total_count()}, elapsed={self.elapsed_seconds():.2f}s)"

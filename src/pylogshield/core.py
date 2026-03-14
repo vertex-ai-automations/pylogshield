@@ -8,9 +8,9 @@ from pathlib import Path
 from queue import Queue
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Union
 
-from pylogshield.config import SENSITIVE_FIELDS
 from pylogshield.config import add_sensitive_fields as cfg_add_sensitive_fields
-from pylogshield.config import get_sensitive_pattern
+from pylogshield.config import get_sensitive_fields, get_sensitive_pattern
+from pylogshield.context import ContextFilter, async_log_context, log_context
 from pylogshield.filters import ContextScrubber, KeywordFilter
 from pylogshield.handlers import (
     create_console_handler,
@@ -69,6 +69,18 @@ class PyLogShield(logging.Logger):
         Filter for log messages. Default is None.
     enable_context_scrubber : bool, optional
         Whether to scrub cloud credentials from log records. Default is True.
+    enable_context : bool, optional
+        Whether to enable context propagation via
+        :func:`~pylogshield.context.log_context` /
+        :func:`~pylogshield.context.async_log_context`.  When ``True`` a
+        :class:`~pylogshield.context.ContextFilter` is added to the logger so
+        that any fields set in the active context block are automatically
+        attached to every log record.  Default is ``False``.
+    queue_maxsize : int, optional
+        Maximum size of the async logging queue when ``use_queue=True``.
+        ``0`` means unbounded. Positive integers cap the queue size; when the
+        queue is full, new messages are dropped (non-blocking put). Default
+        is ``0``.
 
     Attributes
     ----------
@@ -115,6 +127,8 @@ class PyLogShield(logging.Logger):
             Union[logging.Filter, KeywordFilter, Iterable[str]]
         ] = None,
         enable_context_scrubber: bool = True,
+        enable_context: bool = False,
+        queue_maxsize: int = 0,
     ) -> None:
         resolved_level = self._resolve_log_level(log_level)
         super().__init__(name, level=resolved_level)
@@ -173,8 +187,15 @@ class PyLogShield(logging.Logger):
             for h in handlers:
                 h.addFilter(scrubber)
 
+        if enable_context:
+            # Add to the logger (not individual handlers) so the filter fires
+            # once per record in the calling thread/task — before the record
+            # is handed off to any QueueHandler — ensuring the ContextVar is
+            # read while the correct context is still active.
+            self.addFilter(ContextFilter())
+
         if use_queue and handlers:
-            q: Queue = Queue(-1)
+            q: Queue = Queue(queue_maxsize)
             self.addHandler(QueueHandler(q))
             self._queue_listener = QueueListener(
                 q, *handlers, respect_handler_level=True
@@ -244,10 +265,17 @@ class PyLogShield(logging.Logger):
 
     # -------------- masking --------------
 
-    def _mask_mapping(self, obj: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+    def _mask_mapping(
+        self,
+        obj: MutableMapping[str, Any],
+        sensitive_keys: Optional[frozenset] = None,
+        pattern: Optional[Any] = None,
+    ) -> MutableMapping[str, Any]:
+        if sensitive_keys is None:
+            sensitive_keys = frozenset(s.lower() for s in get_sensitive_fields())
+        if pattern is None:
+            pattern = get_sensitive_pattern()
         masked: Dict[str, Any] = {}
-        pattern = get_sensitive_pattern()
-        sensitive_keys = {s.lower() for s in SENSITIVE_FIELDS}
         for k, v in obj.items():
             k_lc = str(k).lower()
             if isinstance(v, str):
@@ -256,23 +284,32 @@ class PyLogShield(logging.Logger):
                 else:
                     masked[k] = pattern.sub(lambda m: f"{m.group(1)}: ***", v)
             elif isinstance(v, dict):
-                masked[k] = self._mask_mapping(v)
+                masked[k] = self._mask_mapping(v, sensitive_keys, pattern)
             elif isinstance(v, (list, tuple)):
-                masked[k] = self._mask_sequence(v)
+                masked[k] = self._mask_sequence(v, sensitive_keys, pattern)
             else:
                 masked[k] = v
         return masked
 
-    def _mask_sequence(self, seq: Any) -> Any:
+    def _mask_sequence(
+        self,
+        seq: Any,
+        sensitive_keys: Optional[frozenset] = None,
+        pattern: Optional[Any] = None,
+    ) -> Any:
+        if sensitive_keys is None:
+            sensitive_keys = frozenset(s.lower() for s in get_sensitive_fields())
+        if pattern is None:
+            pattern = get_sensitive_pattern()
         out = []
         for item in seq:
             if isinstance(item, dict):
-                out.append(self._mask_mapping(item))
+                out.append(self._mask_mapping(item, sensitive_keys, pattern))
             elif isinstance(item, (list, tuple)):
-                out.append(self._mask_sequence(item))
+                out.append(self._mask_sequence(item, sensitive_keys, pattern))
             elif isinstance(item, str):
                 out.append(
-                    "***" if get_sensitive_pattern().search(item or "") else item
+                    "***" if pattern.search(item or "") else item
                 )
             else:
                 out.append(item)
@@ -283,12 +320,14 @@ class PyLogShield(logging.Logger):
         return pattern.sub(lambda m: f"{m.group(1)}: ***", text)
 
     def _mask(self, payload: Any) -> Any:
+        sensitive_keys = frozenset(s.lower() for s in get_sensitive_fields())
+        pattern = get_sensitive_pattern()
         if isinstance(payload, str):
-            return self._mask_text(payload)
+            return pattern.sub(lambda m: f"{m.group(1)}: ***", payload)
         if isinstance(payload, dict):
-            return self._mask_mapping(payload)
+            return self._mask_mapping(payload, sensitive_keys, pattern)
         if isinstance(payload, (list, tuple)):
-            return self._mask_sequence(payload)
+            return self._mask_sequence(payload, sensitive_keys, pattern)
         return payload
 
     # -------------- rate limiting --------------
@@ -303,6 +342,11 @@ class PyLogShield(logging.Logger):
     def _process_message(self, msg: Any, *, mask: bool) -> Any:
         return self._mask(msg) if mask else msg
 
+    def _mask_string(self, text: str) -> str:
+        """Apply the sensitive pattern to a single string and return the masked result."""
+        pattern = get_sensitive_pattern()
+        return pattern.sub(lambda m: f"{m.group(1)}: ***", text)
+
     def _log_with_processing(
         self, level: int, msg: Any, *args: Any, mask: bool = False, **kwargs: Any
     ) -> None:
@@ -314,6 +358,36 @@ class PyLogShield(logging.Logger):
                 processed = json.dumps(processed, ensure_ascii=False)
             except Exception:
                 processed = str(processed)
+
+        if mask:
+            # Scrub sensitive data from exception args so they don't leak
+            # through the formatted traceback.
+            exc_info = kwargs.get("exc_info")
+            if exc_info and exc_info is not True:
+                # exc_info may be a (type, value, tb) tuple
+                exc_val = exc_info[1] if isinstance(exc_info, tuple) else None
+                if exc_val is not None and hasattr(exc_val, "args"):
+                    masked_args = tuple(
+                        self._mask_string(a) if isinstance(a, str) else a
+                        for a in exc_val.args
+                    )
+                    try:
+                        exc_val.args = masked_args
+                    except AttributeError:
+                        pass
+            elif exc_info is True:
+                import sys
+                exc_val = sys.exc_info()[1]
+                if exc_val is not None and hasattr(exc_val, "args"):
+                    masked_args = tuple(
+                        self._mask_string(a) if isinstance(a, str) else a
+                        for a in exc_val.args
+                    )
+                    try:
+                        exc_val.args = masked_args
+                    except AttributeError:
+                        pass
+
         super().log(level, processed, *args, **kwargs)
 
     # -------------- runtime control --------------
@@ -331,6 +405,46 @@ class PyLogShield(logging.Logger):
         self.log_level = resolved
         for handler in self.handlers:
             handler.setLevel(resolved)
+
+    # -------------- context propagation --------------
+
+    def context(self, **fields: Any):
+        """Return a sync context manager that injects *fields* into all logs.
+
+        Shorthand for :func:`~pylogshield.context.log_context`.  Requires the
+        logger to have been created with ``enable_context=True``.
+
+        Parameters
+        ----------
+        **fields : Any
+            Key/value pairs to attach to every log record emitted inside the
+            ``with`` block.
+
+        Examples
+        --------
+        >>> with logger.context(request_id="abc", user_id=42):
+        ...     logger.info("Processing order")
+        """
+        return log_context(**fields)
+
+    def async_context(self, **fields: Any):
+        """Return an async context manager that injects *fields* into all logs.
+
+        Shorthand for :func:`~pylogshield.context.async_log_context`.
+        Requires the logger to have been created with ``enable_context=True``.
+
+        Parameters
+        ----------
+        **fields : Any
+            Key/value pairs to attach to every log record emitted inside the
+            ``async with`` block.
+
+        Examples
+        --------
+        >>> async with logger.async_context(request_id="xyz"):
+        ...     logger.info("Async handler")
+        """
+        return async_log_context(**fields)
 
     # -------------- public methods (names unchanged) --------------
 
@@ -360,6 +474,14 @@ class PyLogShield(logging.Logger):
         exc_info: bool = True,
         **kwargs: Any,
     ) -> None:
+        """Log an error with exception info.
+
+        When ``mask=True``, string args of the active exception are scrubbed
+        before the record is emitted.
+
+        Note: traceback *locals* are not masked — use a traceback-filtering
+        tool if local variable values must also be redacted.
+        """
         self._log_with_processing(
             logging.ERROR, msg, *args, mask=mask, exc_info=exc_info, **kwargs
         )
@@ -378,7 +500,7 @@ class PyLogShield(logging.Logger):
             Configuration dictionary with optional keys: level, enable_json,
             use_queue, use_rich, rate_limit_seconds, log_directory, log_file,
             rotate_file, rotate_max_bytes, rotate_backup_count, add_console,
-            enable_metrics, log_filter, enable_context_scrubber.
+            enable_metrics, log_filter, enable_context_scrubber, enable_context.
 
         Returns
         -------
@@ -406,7 +528,7 @@ class PyLogShield(logging.Logger):
 
         return cls(
             name,
-            log_level=LogLevel.parse(config.get("level", logging.INFO)),
+            log_level=LogLevel.parse(config.get("level", "INFO")),
             enable_json=bool(config.get("enable_json", False)),
             use_queue=bool(config.get("use_queue", False)),
             use_rich=bool(config.get("use_rich", False)),
@@ -420,10 +542,11 @@ class PyLogShield(logging.Logger):
             enable_metrics=bool(config.get("enable_metrics", False)),
             log_filter=lf_obj,
             enable_context_scrubber=bool(config.get("enable_context_scrubber", True)),
+            enable_context=bool(config.get("enable_context", False)),
         )
 
     @staticmethod
-    def add_sensitive_fields(fields: list[str]) -> None:
+    def add_sensitive_fields(fields: List[str]) -> None:
         """Add field names to the sensitive data redaction registry.
 
         Parameters

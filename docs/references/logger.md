@@ -31,6 +31,35 @@ logger = PyLogShield("my_app", log_level="INFO")
 | `rotate_backup_count` | `int` | `5` | Number of backup files |
 | `enable_metrics` | `bool` | `False` | Enable metrics tracking |
 | `enable_context_scrubber` | `bool` | `True` | Remove cloud credentials |
+| `enable_context` | `bool` | `False` | Install `ContextFilter`; pairs with `log_context()`/`async_log_context()` |
+| `queue_maxsize` | `int` | `0` | Max async queue size (0 = unbounded); only used when `use_queue=True` |
+
+```mermaid
+flowchart TB
+    INIT(["PyLogShield(\n  enable_json=True,\n  use_queue=True,\n  enable_context=True\n)"])
+
+    subgraph HANDLERS ["Configured Handlers"]
+        F["FileHandler / RotatingFileHandler\n(log_directory / rotate_file)"]
+        C["ConsoleHandler / RichHandler\n(add_console / use_rich)"]
+        J["JsonFormatter\n(enable_json=True)"]
+        Q["QueueHandler → QueueListener\n(use_queue=True, queue_maxsize)"]
+    end
+
+    subgraph FILTERS ["Active Filters"]
+        CF["ContextFilter\n(enable_context=True)"]
+        CS["ContextScrubber\n(enable_context_scrubber=True)"]
+        KF["KeywordFilter\n(log_filter=...)"]
+    end
+
+    subgraph FEATURES ["Runtime Features"]
+        RL["RateLimiter\n(rate_limit_seconds > 0)"]
+        MT["LogMetricsHandler\n(enable_metrics=True)"]
+    end
+
+    INIT --> HANDLERS
+    INIT --> FILTERS
+    INIT --> FEATURES
+```
 
 ## Examples
 
@@ -77,6 +106,32 @@ logger = get_logger(
     rotate_backup_count=5
 )
 ```
+
+### Context Propagation
+
+```python
+from pylogshield import get_logger
+from pylogshield.context import log_context
+
+logger = get_logger("api", enable_context=True, enable_json=True)
+
+with log_context(request_id="abc-123"):
+    logger.info("Processing")
+    # JSON output includes request_id field
+```
+
+### Exception Logging with Masking
+
+```python
+try:
+    connect_db(password=secret)
+except Exception:
+    logger.exception("DB connection failed", mask=True)
+    # exception .args are masked; traceback locals are NOT redacted
+```
+
+!!! warning
+    `mask=True` does not redact traceback frame locals. See [Sensitive Data Masking](../usage.md#sensitive-data-masking) for details.
 
 ---
 

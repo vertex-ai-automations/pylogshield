@@ -49,7 +49,8 @@ class JsonFormatter(logging.Formatter):
     >>> handler.setFormatter(formatter)
     """
 
-    # Standard LogRecord attributes to exclude from "extra" field
+    # Standard LogRecord attributes to exclude from "extra" field.
+    # "_pylogshield_ctx_keys" is an internal tag injected by ContextFilter.
     _STANDARD_ATTRS = frozenset(
         {
             "args",
@@ -75,6 +76,7 @@ class JsonFormatter(logging.Formatter):
             "thread",
             "threadName",
             "taskName",
+            "_pylogshield_ctx_keys",
         }
     )
 
@@ -116,6 +118,14 @@ class JsonFormatter(logging.Formatter):
             "level": record.levelname,
             "message": record.getMessage(),
         }
+
+        # Context fields (injected by ContextFilter) are promoted to the
+        # top-level envelope so they appear alongside timestamp/level rather
+        # than being buried under "extra".
+        ctx_keys: frozenset = getattr(record, "_pylogshield_ctx_keys", frozenset())
+        for k in ctx_keys:
+            envelope[k] = record.__dict__.get(k)
+
         if record.exc_info:
             envelope["exc_info"] = self.formatException(record.exc_info)
         if record.stack_info:
@@ -124,7 +134,7 @@ class JsonFormatter(logging.Formatter):
         if self.include_extra:
             extra: Dict[str, Any] = {}
             for k, v in record.__dict__.items():
-                if k not in self._STANDARD_ATTRS:
+                if k not in self._STANDARD_ATTRS and k not in ctx_keys:
                     extra[k] = v
             if extra:
                 envelope["extra"] = extra

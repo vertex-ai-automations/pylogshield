@@ -52,6 +52,10 @@ python -m build
 
 - **`utils.py`** - `LogLevel` enum and `add_log_level()` for custom runtime levels
 
+- **`context.py`** - Context propagation via `contextvars`. `log_context` / `async_log_context` context managers inject key/value pairs into all log records within a block. `ContextFilter` is the logging filter that stamps these fields onto records. Works correctly with `asyncio.gather` (per-task isolation).
+
+- **`middleware.py`** - `PyLogShieldMiddleware`: FastAPI/Starlette ASGI middleware that automatically injects `request_id`, `http_method`, `http_path`, and `client_ip` into every log record during a request. Requires `pip install "pylogshield[fastapi]"`. The logger passed to it should have `enable_context=True`.
+
 ### Public API (`__init__.py`)
 
 Main export is `get_logger()` - returns a singleton `PyLogShield` instance by name, integrates with Python's logging manager.
@@ -59,7 +63,12 @@ Main export is `get_logger()` - returns a singleton `PyLogShield` instance by na
 ### Key Patterns
 
 - All logging methods (`info`, `debug`, `warning`, `error`, `critical`) accept `mask=True` to enable sensitive data redaction
-- Async logging via `use_queue=True` uses `QueueHandler`/`QueueListener`
+- Async logging via `use_queue=True` uses `QueueHandler`/`QueueListener`; call `logger.shutdown()` to stop the background thread when done
+- By default, `PyLogShield` always writes a log file at `~/.logs/{name}.log` even without explicit config; pass `log_directory` and `log_file` to override
+- `enable_context_scrubber=True` by default — strips cloud credential prefixes (AWS_, AZURE_, GCP_, GOOGLE_, TOKEN) from all log records
+- `enable_context=True` installs a `ContextFilter` on the logger; combined with `log_context()`/`async_log_context()` this propagates structured fields (e.g. `request_id`) to every log record in the block
+- `PyLogShield.from_config(name, dict)` is an alternate constructor for dict-based configuration
+- `get_logger()` raises `TypeError` if a non-PyLogShield logger with the same name already exists; use `force=True` to replace it
 - Version auto-generated from git tags via `setuptools_scm` (see `_version.py`)
 
 ## CLI Usage
@@ -100,6 +109,12 @@ Test modules:
 - `test_handlers.py` - Handler factories and JsonFormatter
 - `test_utils.py` - LogLevel enum and add_log_level
 - `test_viewer.py` - LogViewer
+
+Key fixtures in `conftest.py`:
+- `reset_sensitive_fields` (autouse) — restores `SENSITIVE_FIELDS` to defaults after every test
+- `basic_logger` / `json_logger` — pre-built loggers writing to a temp dir with `add_console=False`
+- `clean_logger_registry` — removes `test_*` loggers from `logging.Logger.manager.loggerDict`; use this in tests that call `get_logger()` directly
+- `close_logger(logger)` helper — closes handlers, calls `shutdown()`, and removes the logger from the registry
 
 ## Release Process
 

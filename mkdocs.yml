@@ -81,6 +81,9 @@ nav:
       - CLI Usage: cli_usage.md
   - API Reference:
       - PyLogShield: references/logger.md
+      - Context Propagation: references/context.md
+      - FastAPI Middleware: references/middleware.md
+      - Metrics: references/metrics.md
       - LogViewer: references/viewer.md
       - Utilities: references/utils.md
       - Filters: references/filters.md

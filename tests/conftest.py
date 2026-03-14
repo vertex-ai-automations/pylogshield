@@ -10,7 +10,11 @@ from typing import Generator
 import pytest
 
 from pylogshield import PyLogShield, get_logger
-from pylogshield.config import SENSITIVE_FIELDS, invalidate_sensitive_pattern_cache
+from pylogshield.config import (
+    add_sensitive_fields,
+    get_sensitive_fields,
+    remove_sensitive_fields,
+)
 
 
 def close_logger(logger: PyLogShield) -> None:
@@ -65,11 +69,16 @@ def json_logger(temp_log_dir: Path) -> Generator[PyLogShield, None, None]:
 @pytest.fixture(autouse=True)
 def reset_sensitive_fields() -> Generator[None, None, None]:
     """Reset sensitive fields to default after each test."""
-    original_fields = SENSITIVE_FIELDS.copy()
+    original = get_sensitive_fields()
     yield
-    SENSITIVE_FIELDS.clear()
-    SENSITIVE_FIELDS.update(original_fields)
-    invalidate_sensitive_pattern_cache()
+    # Restore: remove any fields added during the test, re-add any removed.
+    current = get_sensitive_fields()
+    added = current - original
+    removed = original - current
+    if added:
+        remove_sensitive_fields(added)
+    if removed:
+        add_sensitive_fields(removed)
 
 
 @pytest.fixture

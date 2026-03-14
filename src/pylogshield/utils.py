@@ -95,6 +95,8 @@ class LogLevel(IntEnum):
         10
         """
         if isinstance(value, int):
+            if not (logging.DEBUG <= value <= logging.CRITICAL + 100):
+                raise ValueError(f"Invalid log level integer: {value}")
             return value
         val = value.strip().upper()
         if val == "WARN":
@@ -182,15 +184,11 @@ def add_log_level(name: str, value: int, *, logger_cls: Type[logging.Logger]) ->
             **kwargs: Any,
         ) -> None:
             if hasattr(self, "_log_with_processing"):
-                try:
-                    self._log_with_processing(value, msg, *args, mask=mask, **kwargs)
-                    return
-                except TypeError:
-                    pass
-
-            kwargs.pop("mask", None)
-            if self.isEnabledFor(value):
-                self._log(value, msg, args, **kwargs)
+                self._log_with_processing(value, msg, *args, mask=mask, **kwargs)
+            else:
+                kwargs.pop("mask", None)
+                if self.isEnabledFor(value):
+                    self._log(value, msg, args, **kwargs)
 
         setattr(logger_cls, method_name, _log_method)
 

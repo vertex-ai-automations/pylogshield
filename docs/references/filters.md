@@ -139,3 +139,7 @@ record.user_id = "12345"              # Kept
       members:
         - KeywordFilter
         - ContextScrubber
+
+## ContextFilter
+
+For context propagation (injecting request IDs and other structured fields into log records), see the dedicated [Context Propagation](context.md) reference.

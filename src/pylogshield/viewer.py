@@ -7,11 +7,28 @@ from collections import deque
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
-from rich.console import Console
-from rich.live import Live
-from rich.table import Table
+try:
+    from rich import box
+    from rich.console import Console
+    from rich.live import Live
+    from rich.panel import Panel
+    from rich.table import Table
+    from rich.text import Text
+    _HAS_RICH = True
+except ImportError:
+    _HAS_RICH = False
 
 from pylogshield.utils import LogLevel
+
+# Per-level Rich styles — used for the Level column in the log table.
+_LEVEL_STYLES: dict = {
+    "CRITICAL": "bold red",
+    "ERROR":    "red",
+    "WARNING":  "yellow",
+    "INFO":     "green",
+    "DEBUG":    "cyan",
+    "NOTSET":   "dim",
+}
 
 
 class LogViewer:
@@ -40,6 +57,11 @@ class LogViewer:
     """
 
     def __init__(self, log_file: Path) -> None:
+        if not _HAS_RICH:
+            raise ImportError(
+                "LogViewer requires the 'rich' library. "
+                "Install it with: pip install rich"
+            )
         self.log_file = Path(log_file).resolve()
         self.console = Console()
 
@@ -70,37 +92,35 @@ class LogViewer:
 
         # For larger files, read from the end in chunks
         chunk_size = 8192
-        lines: List[str] = []
+        byte_lines: List[bytes] = []
         with self.log_file.open("rb") as f:
             # Start from end
             f.seek(0, os.SEEK_END)
             remaining = f.tell()
-            buffer = b""
+            buffer: bytes = b""
 
-            while remaining > 0 and len(lines) < limit:
+            while remaining > 0 and len(byte_lines) < limit:
                 read_size = min(chunk_size, remaining)
                 remaining -= read_size
                 f.seek(remaining)
                 chunk = f.read(read_size)
                 buffer = chunk + buffer
 
-                # Split into lines (keeping partial line in buffer)
-                decoded = buffer.decode("utf-8", errors="replace")
-                split_lines = decoded.split("\n")
+                # Split on newline bytes (keeping partial line in buffer)
+                split_lines = buffer.split(b"\n")
 
-                # If we have more than one line, all but the first are complete
+                # If we have more than one segment, all but the first are complete
                 if len(split_lines) > 1:
-                    lines = split_lines[1:] + lines
-                    buffer = split_lines[0].encode("utf-8", errors="replace")
-                else:
-                    buffer = decoded.encode("utf-8", errors="replace")
+                    byte_lines = split_lines[1:] + byte_lines
+                    buffer = split_lines[0]
+                # else: entire buffer is one partial line — keep accumulating
 
             # Don't forget the remaining buffer
             if buffer:
-                decoded_buffer = buffer.decode("utf-8", errors="replace")
-                if decoded_buffer.strip():
-                    lines = [decoded_buffer] + lines
+                byte_lines = [buffer] + byte_lines
 
+        # Decode all byte lines at once to avoid splitting multi-byte sequences
+        lines = [bl.decode("utf-8", errors="replace") for bl in byte_lines]
         return lines[-limit:]
 
     def _parse_line(self, line: str) -> Tuple[str, str, str]:
@@ -157,13 +177,15 @@ class LogViewer:
         keyword_low = keyword.lower() if keyword else None
 
         table = Table(
-            title="Log Viewer - {}".format(str(self.log_file)),
             show_header=True,
-            header_style="bold magenta",
+            header_style="bold white",
+            box=box.ROUNDED,
+            border_style="bright_black",
+            expand=True,
         )
-        table.add_column("Timestamp", style="dim")
-        table.add_column("Level", style="cyan")
-        table.add_column("Message", style="green")
+        table.add_column("Timestamp", style="dim", no_wrap=True, min_width=26)
+        table.add_column("Level", no_wrap=True, min_width=8)
+        table.add_column("Message")
 
         def _passes_level(levelname: str) -> bool:
             if level is None:
@@ -189,8 +211,11 @@ class LogViewer:
             if keyword_low and keyword_low not in str(msg).lower():
                 continue
 
-            table.add_row(ts, lvl, str(msg))
+            level_text = Text(lvl, style=_LEVEL_STYLES.get(lvl.upper(), "white"))
+            table.add_row(ts, level_text, str(msg))
 
+        entry_word = "entry" if table.row_count == 1 else "entries"
+        table.caption = f"[dim]{table.row_count} {entry_word} shown[/dim]"
         return table
 
     def display_logs(
@@ -220,11 +245,21 @@ class LogViewer:
         """
         if not self.log_file.exists():
             self.console.print(
-                f"[bold yellow]File not found:[/bold yellow] {self.log_file}"
+                Panel(
+                    f"[bold]{self.log_file}[/bold]",
+                    title="[bold red] File Not Found [/bold red]",
+                    border_style="red",
+                    box=box.ROUNDED,
+                    expand=False,
+                )
             )
             return False
         table = self._build_table(limit, level, keyword)
         self.console.print(table)
+        if table.row_count == 0:
+            self.console.print(
+                "[yellow]No log entries matched the current filters.[/yellow]"
+            )
         return True
 
     def follow_logs(
@@ -265,15 +300,22 @@ class LogViewer:
         """
         if not self.log_file.exists():
             self.console.print(
-                f"[bold yellow]File not found:[/bold yellow] {self.log_file}"
+                Panel(
+                    f"[bold]{self.log_file}[/bold]",
+                    title="[bold red] File Not Found [/bold red]",
+                    border_style="red",
+                    box=box.ROUNDED,
+                    expand=False,
+                )
             )
             return False
 
         # Rolling buffer of *raw* lines to feed batch renderer
         window: deque[str] = deque(maxlen=max_lines)
 
-        # Start with headers-only table via helper
+        # Start with a headers-only table; show a "waiting" placeholder caption
         table = self._build_table_from_lines([], level, keyword)
+        table.caption = "[dim]Waiting for new log entries…[/dim]"
 
         # Configure Live (only override refresh rate if interval > 0)
         live_kwargs = {"console": self.console, "transient": True}

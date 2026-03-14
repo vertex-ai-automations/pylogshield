@@ -18,6 +18,18 @@ A logging library designed for data professionals and developers who need reliab
 
 ---
 
+<div align="center" markdown>
+
+[![PyPI](https://img.shields.io/pypi/v/pylogshield?color=indigo&logo=pypi&logoColor=white)](https://pypi.org/project/pylogshield/)
+[![Python](https://img.shields.io/pypi/pyversions/pylogshield?color=indigo&logo=python&logoColor=white)](https://pypi.org/project/pylogshield/)
+[![License](https://img.shields.io/badge/license-MIT-indigo.svg)](https://github.com/vertex-ai-automations/pylogshield/blob/main/LICENSE.txt)
+[![Downloads](https://img.shields.io/pypi/dm/pylogshield?color=indigo)](https://pypi.org/project/pylogshield/)
+[![CI](https://img.shields.io/github/actions/workflow/status/vertex-ai-automations/pylogshield/release.yml?branch=main&label=CI&logo=github)](https://github.com/vertex-ai-automations/pylogshield/actions)
+
+</div>
+
+---
+
 ## Why PyLogShield?
 
 PyLogShield extends Python's standard `logging` module with production-ready features commonly needed in data engineering and application development—without the complexity.
@@ -104,6 +116,33 @@ pylogshield follow -f app.log -l ERROR
 
 </div>
 
+<div class="feature-item" markdown>
+
+### :material-arrow-right-circle: Context Propagation
+
+Inject structured fields into every log record within a code block — thread-safe and asyncio-safe via Python's `contextvars`.
+
+```python
+with log_context(request_id="abc", user_id=42):
+    logger.info("Processing")
+# JSON output includes request_id and user_id
+```
+
+</div>
+
+<div class="feature-item" markdown>
+
+### :material-web: FastAPI Middleware
+
+Automatically inject `request_id`, HTTP method, path, and client IP into every log during a request.
+
+```python
+app.add_middleware(PyLogShieldMiddleware, logger=logger)
+# Every log in a request carries request context
+```
+
+</div>
+
 </div>
 
 ---
@@ -154,7 +193,9 @@ logger = get_logger(
     rotate_max_bytes=10_000_000,# 10 MB per file
     rate_limit_seconds=0.5,     # Prevent flooding
     use_queue=True,             # Async logging
-    enable_metrics=True         # Track log stats
+    queue_maxsize=50_000,       # Cap queue memory
+    enable_metrics=True,        # Track log stats
+    enable_context=True,        # Structured context injection
 )
 
 logger.info("Production logger ready")
@@ -174,7 +215,40 @@ logger.info("Production logger ready")
 | Async logging | Manual setup | :material-check: One flag |
 | CLI viewer | :material-close: | :material-check: |
 | Metrics | :material-close: | :material-check: |
+| Context propagation | :material-close: | :material-check: |
+| FastAPI middleware | :material-close: | :material-check: |
 | Cloud credential scrubbing | :material-close: | :material-check: |
+
+---
+
+## Architecture
+
+PyLogShield wraps every log call in a processing pipeline before handing off to your configured output handlers.
+
+```mermaid
+flowchart LR
+    APP(["Your Application\nlogger.info(msg, mask=True)"])
+
+    subgraph PIPELINE ["Processing Pipeline"]
+        direction TB
+        A["🔒 Sensitive Data Masking"]
+        B["🚦 Rate Limiter"]
+        C["🧵 Context Injection"]
+        D["☁️ Cloud Credential Scrubber"]
+        A --> B --> C --> D
+    end
+
+    subgraph OUTPUT ["Output Handlers"]
+        direction TB
+        H1["Console / Rich"]
+        H2["File / Rotating File"]
+        H3["JSON Formatter"]
+        H4["Async Queue → Background Thread"]
+        H5["Metrics Tracker"]
+    end
+
+    APP --> PIPELINE --> OUTPUT
+```
 
 ---
 

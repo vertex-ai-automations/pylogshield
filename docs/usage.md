@@ -29,6 +29,28 @@ See the [PyLogShield API Reference](./references/logger.md) for all available pa
 
 Automatically mask sensitive fields like passwords, tokens, and API keys.
 
+```mermaid
+flowchart LR
+    IN(["logger.info(data, mask=True)"])
+    M{{"_mask(data)"}}
+
+    subgraph TYPES ["Input type routing"]
+        direction TB
+        S["str → regex replace\nsensitive= patterns"]
+        D["dict → recurse\neach value"]
+        L["list / tuple → recurse\neach element"]
+        E["Exception → mask\nstring .args"]
+    end
+
+    OUT(["Masked Output → LogRecord → Handler"])
+
+    IN --> M
+    M --> S --> OUT
+    M --> D --> OUT
+    M --> L --> OUT
+    M --> E --> OUT
+```
+
 ```python
 from pylogshield import get_logger
 
@@ -52,6 +74,9 @@ logger.info({
 logger.info("User logged in with password: secret123", mask=True)
 # Output: User logged in with password: ***
 ```
+
+!!! warning "Exception tracebacks"
+    `mask=True` masks the exception's `.args` string values. Traceback locals and frame variables are formatted by the log handler and are **not** redacted. Avoid passing sensitive data as local variables in functions that may log exceptions.
 
 ### Managing Sensitive Fields
 
@@ -265,6 +290,17 @@ This creates files like:
 
 Offload logging to a background thread for improved performance in high-throughput applications.
 
+```mermaid
+flowchart LR
+    A(["logger.info('msg')\nnon-blocking"]) --> B["QueueHandler"]
+    B --> C[/"Bounded Queue\nqueue_maxsize=N"/]
+    C --> D["QueueListener\nbackground thread"]
+    D --> E["File Handler"]
+    D --> F["Console Handler"]
+    D --> G["JSON Formatter"]
+    D --> H["Metrics Handler"]
+```
+
 ```python
 from pylogshield import get_logger
 
@@ -276,6 +312,16 @@ for i in range(10000):
 
 # Important: Shutdown cleanly to flush remaining logs
 logger.shutdown()
+```
+
+### Bounded Queue
+
+By default the async queue is unbounded. In high-throughput scenarios you can cap it to avoid unbounded memory growth:
+
+```python
+logger = get_logger("app", use_queue=True, queue_maxsize=10_000)
+# Messages are dropped (not blocked) when the queue is full
+logger.shutdown()  # Always flush on exit
 ```
 
 ---
@@ -297,6 +343,60 @@ logger = get_logger("my_app", enable_context_scrubber=False)
 from pylogshield import ContextScrubber
 scrubber = ContextScrubber(forbidden_prefixes=("SECRET_", "PRIVATE_", "INTERNAL_"))
 ```
+
+---
+
+## Context Propagation
+
+Inject structured fields into every log record within a block using `log_context` (sync) or `async_log_context` (async). Requires `enable_context=True` on the logger.
+
+```python
+from pylogshield import get_logger
+from pylogshield.context import log_context, async_log_context
+
+logger = get_logger("app", enable_context=True, enable_json=True)
+
+# Sync context
+with log_context(request_id="abc-123", user_id=42):
+    logger.info("Processing order")
+    # JSON includes request_id and user_id automatically
+
+# Nested contexts — inner fields merge on top of outer
+with log_context(service="payments"):
+    with log_context(transaction_id="tx-7"):
+        logger.info("Charge")  # has both service and transaction_id
+
+# Async context (asyncio-safe, no cross-task bleed)
+async def handle(req_id: str):
+    async with async_log_context(request_id=req_id):
+        logger.info("Handling request")
+```
+
+See the [Context Propagation reference](./references/context.md) for full details.
+
+---
+
+## FastAPI / Starlette Middleware
+
+Automatically inject request context into all logs for a FastAPI app. Requires `pip install "pylogshield[fastapi]"`.
+
+```python
+from fastapi import FastAPI
+from pylogshield import get_logger
+from pylogshield.middleware import PyLogShieldMiddleware
+
+app = FastAPI()
+logger = get_logger("api", enable_context=True, enable_json=True)
+app.add_middleware(PyLogShieldMiddleware, logger=logger)
+
+@app.get("/items")
+async def list_items():
+    logger.info("Listing items")
+    # Logs automatically include request_id, http_method, http_path, client_ip
+    return []
+```
+
+See the [Middleware reference](./references/middleware.md) for full details.
 
 ---
 
@@ -369,6 +469,7 @@ logger = PyLogShield.from_config("my_app", config)
 
 ```python
 from pylogshield import get_logger, add_sensitive_fields
+from pylogshield.context import log_context
 
 # Configure sensitive fields
 add_sensitive_fields(["ssn", "credit_card"])
@@ -383,24 +484,25 @@ logger = get_logger(
     rotate_backup_count=5,
     rate_limit_seconds=0.5,
     use_queue=True,
+    queue_maxsize=50_000,
     enable_metrics=True,
-    enable_context_scrubber=True
+    enable_context_scrubber=True,
+    enable_context=True,
 )
 
-# Use it throughout your application
 logger.info("Application starting")
-logger.info({"action": "login", "user": "john", "token": "abc123"}, mask=True)
+
+with log_context(session_id="s-abc123"):
+    logger.info({"action": "login", "user": "john", "token": "abc123"}, mask=True)
 
 try:
-    # Your code here
     pass
 except Exception as e:
+    # Note: mask=True masks exception .args, but traceback locals are not masked
     logger.exception("Unexpected error occurred")
 
-# Get metrics before shutdown
 metrics = logger.get_metrics()
 logger.info(f"Session stats: {metrics['count']} logs in {metrics['elapsed']:.1f}s")
 
-# Clean shutdown
 logger.shutdown()
 ```
