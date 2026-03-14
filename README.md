@@ -12,9 +12,6 @@
 |⛪
 <a href="https://www.vertexaiautomations.com">Vertex AI Automations</a>|
 </p>
-<br>
-<img src="docs/img/pylogshield_animate.gif" alt="PyLogShield Animation">
-<br>
 </div>
 
 ## 📋 Table of Contents

@@ -9,9 +9,6 @@
 |⛪
 <a href="https://www.vertexaiautomations.com">Vertex AI Automations</a>|
 </p>
-<br />
-<img src="img/pylogshield_animate.gif" alt="PyLogShield Animation">
-<br />
 </div>
 
 ## 📣 About The Project
