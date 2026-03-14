@@ -160,9 +160,9 @@ markdown_extensions:
   - pymdownx.smartsymbols
   - pymdownx.snippets:
       base_path: ["docs/includes"]
-      auto_append:
-        - includes/abbreviations.md
-      check_paths: true
+      #auto_append:
+      #  - includes/abbreviations.md
+      #check_paths: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
