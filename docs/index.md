@@ -6,8 +6,7 @@ hide:
 
 <div class="hero" markdown>
 <img src="img/pylogshield.png" alt="PyLogShield Logo">
-# PyLogShield
-
+  
 **Secure, Production-Ready Logging for Python**
 
 A logging library designed for data professionals and developers who need reliable, secure logging with minimal setup.
