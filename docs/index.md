@@ -5,7 +5,7 @@ hide:
 ---
 
 <div class="hero" markdown>
-
+<img src="img/pylogshield.png" alt="PyLogShield Logo">
 # PyLogShield
 
 **Secure, Production-Ready Logging for Python**
