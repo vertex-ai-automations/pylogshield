@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, List, Sequence
+from typing import Iterable, List, Optional, Sequence, Tuple
 
 
 class KeywordFilter(logging.Filter):
@@ -103,7 +103,7 @@ class ContextScrubber(logging.Filter):
     DEFAULT_FORBIDDEN_PREFIXES = ("AWS_", "AZURE_", "GCP_", "GOOGLE_", "TOKEN")
 
     def __init__(
-        self, forbidden_prefixes: tuple[str, ...] | None = None, name: str = ""
+        self, forbidden_prefixes: Optional[Tuple[str, ...]] = None, name: str = ""
     ) -> None:
         super().__init__(name)
         self._forbidden_prefixes = forbidden_prefixes or self.DEFAULT_FORBIDDEN_PREFIXES

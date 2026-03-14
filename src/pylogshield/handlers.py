@@ -6,13 +6,13 @@ import socket
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 try:
     from rich.logging import RichHandler
 
     _HAS_RICH = True
-except Exception:
+except ImportError:
     _HAS_RICH = False
 
 
@@ -109,7 +109,7 @@ class JsonFormatter(logging.Formatter):
         return dt.isoformat(timespec="milliseconds")
 
     def format(self, record: logging.LogRecord) -> str:
-        envelope: dict[str, Any] = {
+        envelope: Dict[str, Any] = {
             "timestamp": self.formatTime(record),
             "host": self.hostname,
             "logger": record.name,
@@ -122,7 +122,7 @@ class JsonFormatter(logging.Formatter):
             envelope["stack_info"] = record.stack_info
 
         if self.include_extra:
-            extra: dict[str, Any] = {}
+            extra: Dict[str, Any] = {}
             for k, v in record.__dict__.items():
                 if k not in self._STANDARD_ATTRS:
                     extra[k] = v

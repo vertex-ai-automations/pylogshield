@@ -6,7 +6,7 @@ import os
 from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 from queue import Queue
-from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional, Union
+from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Union
 
 from pylogshield.config import SENSITIVE_FIELDS
 from pylogshield.config import add_sensitive_fields as cfg_add_sensitive_fields
@@ -132,7 +132,7 @@ class PyLogShield(logging.Logger):
         self.log_file = log_file or f"{name}.log"
         self.log_file_path = self.log_directory / self.log_file
 
-        handlers: list[logging.Handler] = []
+        handlers: List[logging.Handler] = []
 
         if add_console:
             handlers.append(
@@ -257,7 +257,7 @@ class PyLogShield(logging.Logger):
                     masked[k] = pattern.sub(lambda m: f"{m.group(1)}: ***", v)
             elif isinstance(v, dict):
                 masked[k] = self._mask_mapping(v)
-            elif isinstance(v, Union[list, tuple]):
+            elif isinstance(v, (list, tuple)):
                 masked[k] = self._mask_sequence(v)
             else:
                 masked[k] = v
@@ -268,7 +268,7 @@ class PyLogShield(logging.Logger):
         for item in seq:
             if isinstance(item, dict):
                 out.append(self._mask_mapping(item))
-            elif isinstance(item, Union[list, tuple]):
+            elif isinstance(item, (list, tuple)):
                 out.append(self._mask_sequence(item))
             elif isinstance(item, str):
                 out.append(
@@ -287,7 +287,7 @@ class PyLogShield(logging.Logger):
             return self._mask_text(payload)
         if isinstance(payload, dict):
             return self._mask_mapping(payload)
-        if isinstance(payload, Union[list, tuple]):
+        if isinstance(payload, (list, tuple)):
             return self._mask_sequence(payload)
         return payload
 
@@ -351,28 +351,6 @@ class PyLogShield(logging.Logger):
 
     # Alias for warning (common alternative spelling)
     warn = warning
-
-    # =============================================================================
-    #     def log(
-    #         self, level: int, msg: Any, *args: Any, mask: bool = False, **kwargs: Any
-    #     ) -> None:
-    #         """Log a message at the specified level with optional masking.
-    #
-    #         Parameters
-    #         ----------
-    #         level : int
-    #             The logging level (e.g., logging.INFO, logging.DEBUG).
-    #         msg : Any
-    #             The message to log. Can be a string, dict, list, or other object.
-    #         *args : Any
-    #             Additional positional arguments for string formatting.
-    #         mask : bool, optional
-    #             Whether to mask sensitive data in the message. Default is False.
-    #         **kwargs : Any
-    #             Additional keyword arguments passed to the underlying logger.
-    #         """
-    #         self._log_with_processing(level, msg, *args, mask=mask, **kwargs)
-    # =============================================================================
 
     def exception(
         self,

@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from enum import IntEnum
 from threading import RLock
-from typing import Any, List
+from typing import Any, List, Type
 
 
 class LogLevel(IntEnum):
@@ -131,7 +131,7 @@ class LogLevel(IntEnum):
 LEVEL_REGISTRY_LOCK = RLock()
 
 
-def add_log_level(name: str, value: int, *, logger_cls: type[logging.Logger]) -> None:
+def add_log_level(name: str, value: int, *, logger_cls: Type[logging.Logger]) -> None:
     """Register a custom log level and attach a method to a logger class.
 
     The generated method will have the lowercase name of the level (e.g., "SECURITY"
