@@ -17,7 +17,13 @@
 <br>
 </div>
 
-<br>
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+  - [Installation](#-installation)
+- [Contributing](#-contributing)
 
 <details open="true">
   <summary><strong> :page_with_curl: Table of Contents</string></summary>
@@ -39,11 +45,11 @@
   </ol>
 </details>
 
-## :mega: About The Project
+## 📣 Overview
 A Python logging library designed for data professionals and developers who need reliable, secure logging with minimal setup. It extends Python's standard `logging` module with production-ready features commonly needed in data engineering and application development. It includes features like sensitive data masking, log rotation, asynchronous logging, rate limiting, and dynamic configuration, all while remaining lightweight and easy to use.
 
 <!-- Features -->
-## :bulb: Features
+## 💡 Features
 
 - **Sensitive Data Masking**: Automatically masks predefined sensitive fields (e.g., `password`, `token`) in logs.
 - **Log Filtering**: Filter logs based on specific keywords.
@@ -61,7 +67,7 @@ A Python logging library designed for data professionals and developers who need
 - **Custom Log Level**: Runtime custom log level injection (e.g. `SECURITY`, `AUDIT`)
 
 <!-- GETTING STARTED -->
-## :pushpin: Getting Started
+## 📌 Quick Start
 
 ### Installation
 
@@ -83,12 +89,12 @@ Full developer docs with API reference, usage, and model schema:
 <!--Contributors-->
 
 
-## :family: Contributors
+## 👪 Contributing
 All contributions are welcome. If you have a suggestion that would make this better, please fork the repo and create a merge request. You can also simply open an issue with the label 'enhancement'.
 
 Don't forget to give the project a star! Thanks again!
 
- :large_orange_diamond: [View all contributors](CONTRIBUTING.md)
+ 🔶 [View all contributors](https://github.com/vertex-ai-automations/pylogshield/graphs/contributors)
  
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
