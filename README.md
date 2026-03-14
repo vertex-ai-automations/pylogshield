@@ -25,25 +25,6 @@
   - [Installation](#-installation)
 - [Contributing](#-contributing)
 
-<details open="true">
-  <summary><strong> :page_with_curl: Table of Contents</string></summary>
-  <ol>
-    <li>
-      <a href="#mega-about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#bulb-features">Features</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#pushpin-getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#family-contributor">Contributors</a></li>
-    <li><a href="#clap-acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
 
 ## 📣 Overview
 A Python logging library designed for data professionals and developers who need reliable, secure logging with minimal setup. It extends Python's standard `logging` module with production-ready features commonly needed in data engineering and application development. It includes features like sensitive data masking, log rotation, asynchronous logging, rate limiting, and dynamic configuration, all while remaining lightweight and easy to use.
