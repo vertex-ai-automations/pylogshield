@@ -2,7 +2,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-<img src="https://github.com/vertex-ai-automations/pylogshield/raw/main/docs/img/pylogshield.png" alt="PyLogShield Logo" width="250">
+<img src="https://github.com/vertex-ai-automations/pylogshield/raw/main/docs/img/pylogshield.png" alt="PyLogShield Logo">
 <p>
 <br>
 <strong>📃
