@@ -13,11 +13,11 @@
     pip install pylogshield
     ```
 
-=== "pip (with extras)"
+=== "pip (with FastAPI middleware)"
 
     ```bash
-    # Install with all optional dependencies
-    pip install pylogshield[all]
+    # Install with FastAPI/Starlette middleware support
+    pip install "pylogshield[fastapi]"
     ```
 
 === "Poetry"
@@ -96,7 +96,6 @@ These are installed automatically when you install PyLogShield.
 | Extra | Command | Adds |
 |-------|---------|------|
 | `fastapi` | `pip install "pylogshield[fastapi]"` | `PyLogShieldMiddleware` for FastAPI/Starlette |
-| `all` | `pip install "pylogshield[all]"` | All optional dependencies |
 
 ## Development Installation
 

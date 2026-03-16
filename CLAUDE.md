@@ -62,14 +62,20 @@ Main export is `get_logger()` - returns a singleton `PyLogShield` instance by na
 
 ### Key Patterns
 
-- All logging methods (`info`, `debug`, `warning`, `error`, `critical`) accept `mask=True` to enable sensitive data redaction
+- All logging methods (`info`, `debug`, `warning`, `error`, `critical`, `exception`) accept `mask=True` to enable sensitive data redaction. `exception(mask=True)` scrubs exception `.args` strings but does **not** mask traceback local variables.
 - Async logging via `use_queue=True` uses `QueueHandler`/`QueueListener`; call `logger.shutdown()` to stop the background thread when done
 - By default, `PyLogShield` always writes a log file at `~/.logs/{name}.log` even without explicit config; pass `log_directory` and `log_file` to override
 - `enable_context_scrubber=True` by default — strips cloud credential prefixes (AWS_, AZURE_, GCP_, GOOGLE_, TOKEN) from all log records
-- `enable_context=True` installs a `ContextFilter` on the logger; combined with `log_context()`/`async_log_context()` this propagates structured fields (e.g. `request_id`) to every log record in the block
-- `PyLogShield.from_config(name, dict)` is an alternate constructor for dict-based configuration
+- `enable_context=True` installs a `ContextFilter` on the logger; combined with `log_context()`/`async_log_context()` this propagates structured fields (e.g. `request_id`) to every log record in the block. Shorthand: `logger.context(**fields)` / `logger.async_context(**fields)` instead of importing the context manager directly.
+- `PyLogShield.from_config(name, dict)` is an alternate constructor for dict-based configuration. Note: the dict key is `"level"` (not `"log_level"`) for the log level.
+- `logger.set_log_level(level)` changes the logger and all its handlers at runtime
+- `logger.get_metrics()` returns counts and rates per level when `enable_metrics=True`; returns `None` otherwise
 - `get_logger()` raises `TypeError` if a non-PyLogShield logger with the same name already exists; use `force=True` to replace it
 - Version auto-generated from git tags via `setuptools_scm` (see `_version.py`)
+- The package is also runnable as `python -m pylogshield` (entry point: `__main__.py`)
+- `get_sensitive_pattern()` is **not** re-exported from `pylogshield.__init__`; import it directly from `pylogshield.config`
+- `LogViewer` calls `.expanduser().resolve()` on the path — pass `Path("~/.logs/app.log").expanduser()` or an absolute path
+- The only optional extra is `fastapi` (`pip install "pylogshield[fastapi]"`); there is no `[all]` extra
 
 ## CLI Usage
 

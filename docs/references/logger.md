@@ -29,6 +29,7 @@ logger = PyLogShield("my_app", log_level="INFO")
 | `rotate_file` | `bool` | `False` | Enable log rotation |
 | `rotate_max_bytes` | `int` | `5000000` | Max file size before rotation |
 | `rotate_backup_count` | `int` | `5` | Number of backup files |
+| `add_console` | `bool` | `True` | Add a console handler on creation |
 | `enable_metrics` | `bool` | `False` | Enable metrics tracking |
 | `enable_context_scrubber` | `bool` | `True` | Remove cloud credentials |
 | `enable_context` | `bool` | `False` | Install `ContextFilter`; pairs with `log_context()`/`async_log_context()` |
@@ -151,6 +152,8 @@ except Exception:
         - exception
         - set_log_level
         - get_metrics
+        - context
+        - async_context
         - shutdown
         - from_config
         - add_sensitive_fields

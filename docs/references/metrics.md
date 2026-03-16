@@ -14,10 +14,11 @@ logger.error("Something failed")
 
 metrics = logger.get_metrics()
 # {
-#   'INFO': 0.5,    # logs/second for this level
+#   'INFO': 0.5,      # logs/second for this level
 #   'ERROR': 0.5,
-#   'count': 2,
-#   'elapsed': 4.0
+#   'count': 2,       # total log count
+#   'elapsed': 4.0,   # seconds since creation or last reset
+#   'start': 12345.6  # monotonic timestamp of handler creation
 # }
 
 # Count only

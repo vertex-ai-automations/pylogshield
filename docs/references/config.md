@@ -9,8 +9,8 @@ from pylogshield import (
     add_sensitive_fields,
     remove_sensitive_fields,
     get_sensitive_fields,
-    get_sensitive_pattern
 )
+from pylogshield.config import get_sensitive_pattern
 
 # Add custom sensitive fields
 add_sensitive_fields(["ssn", "credit_card", "bank_account"])

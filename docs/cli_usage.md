@@ -7,8 +7,8 @@ The PyLogShield CLI provides an interactive way to view and follow log files dir
 ### Features
 
 - Search log with specific keywords
-- Filter specific log lovel ('info', 'debug', 'error', etc)
-- limit the number of logs to display in the console
+- Filter specific log level ('info', 'debug', 'error', etc)
+- Limit the number of logs to display in the console
 
 ```bash
 pylogshield --help
@@ -25,10 +25,10 @@ Commands:
 
 ## Commands
 
-| Arguments | Description |
+| Command | Description |
 |---------|-------------|
 | `view` | 📜 View the last N logs from a file with optional level and keyword filtering. |
-| `follow` | 📜 Live view, auto-refreshes output on new log lines. |
+| `follow` | 📡 Live view, auto-refreshes output on new log lines. |
 | `levels` | 🔍 Show all valid logging levels. |
 
 ## Common Options
@@ -151,16 +151,16 @@ pylogshield levels
 Output:
 
 ```
-┏━━━━━━━━━━┳━━━━━━━┓
-┃ Name     ┃ Value ┃
-┡━━━━━━━━━━╇━━━━━━━┩
-│ CRITICAL │    50 │
-│ ERROR    │    40 │
-│ WARNING  │    30 │
-│ INFO     │    20 │
-│ DEBUG    │    10 │
-│ NOTSET   │     0 │
-└──────────┴───────┘
+╭──────────┬───────┬──────────────────────────────────────────╮
+│ Level    │ Value │ Description                              │
+├──────────┼───────┼──────────────────────────────────────────┤
+│ CRITICAL │    50 │ System failure — immediate attention req… │
+│ ERROR    │    40 │ An operation failed                      │
+│ WARNING  │    30 │ Unexpected condition, app still running  │
+│ INFO     │    20 │ General operational messages             │
+│ DEBUG    │    10 │ Detailed diagnostic information          │
+│ NOTSET   │     0 │ No level assigned                        │
+╰──────────┴───────┴──────────────────────────────────────────╯
 ```
 
 ---

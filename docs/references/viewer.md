@@ -9,7 +9,7 @@ from pylogshield import LogViewer
 from pathlib import Path
 
 # Create a viewer for a log file
-viewer = LogViewer(Path("~/.logs/my_app.log"))
+viewer = LogViewer(Path("~/.logs/my_app.log").expanduser())
 
 # Display last 100 logs
 viewer.display_logs(limit=100)

@@ -231,7 +231,7 @@ print(metrics)
 # Get counts only
 if logger.metrics_handler:
     print(logger.metrics_handler.counts())
-    # {'INFO': 3, 'ERROR': 1}
+    # {'INFO': 3, 'ERROR': 1}  ← plain dict, not Counter
 ```
 
 ---
@@ -426,7 +426,7 @@ View logs in a formatted table.
 from pylogshield import LogViewer
 from pathlib import Path
 
-viewer = LogViewer(Path("~/.logs/my_app.log"))
+viewer = LogViewer(Path("~/.logs/my_app.log").expanduser())
 
 # Display last 100 logs
 viewer.display_logs(limit=100)
