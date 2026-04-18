@@ -69,7 +69,7 @@ class TestLogMetricsHandler:
         handler = LogMetricsHandler()
         time.sleep(0.1)
         elapsed = handler.elapsed_seconds()
-        assert elapsed >= 0.1
+        assert elapsed >= 0.08  # generous for Windows timer granularity
 
     def test_logs_per_second(self) -> None:
         """Test logs per second calculation."""
@@ -98,7 +98,7 @@ class TestLogMetricsHandler:
         time.sleep(0.1)
 
         assert handler.total_count() == 2
-        assert handler.elapsed_seconds() >= 0.1
+        assert handler.elapsed_seconds() >= 0.08  # generous for Windows timer granularity
 
         handler.reset()
 
