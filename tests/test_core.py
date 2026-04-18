@@ -379,3 +379,96 @@ def test_exception_args_not_mutated_explicit_tuple(basic_logger):
         ei = sys.exc_info()
     basic_logger.error("oops", mask=True, exc_info=ei)
     assert err.args == ("token: abc-123",)
+
+
+class TestQueueLogging:
+    """Tests for async logging with use_queue=True."""
+
+    def test_queue_logger_delivers_messages(self, tmp_path):
+        """use_queue=True must deliver messages to the file handler."""
+        logger = PyLogShield(
+            name="test_queue_delivery",
+            log_directory=tmp_path,
+            log_file="queue.log",
+            use_queue=True,
+            add_console=False,
+        )
+        logger.info("queue_test_marker")
+        logger.shutdown()
+
+        log_content = (tmp_path / "queue.log").read_text()
+        assert "queue_test_marker" in log_content
+        close_logger(logger)
+
+    def test_queue_logger_shutdown_flushes_all(self, tmp_path):
+        """shutdown() must flush all queued messages before stopping."""
+        logger = PyLogShield(
+            name="test_queue_flush",
+            log_directory=tmp_path,
+            log_file="flush.log",
+            use_queue=True,
+            add_console=False,
+        )
+        for i in range(50):
+            logger.info(f"msg_{i}")
+        logger.shutdown()
+
+        log_content = (tmp_path / "flush.log").read_text()
+        for i in range(50):
+            assert f"msg_{i}" in log_content, f"msg_{i} was dropped"
+        close_logger(logger)
+
+    def test_queue_logger_concurrent_writers(self, tmp_path):
+        """Multiple threads writing via queue must not lose messages."""
+        import threading
+
+        logger = PyLogShield(
+            name="test_queue_concurrent",
+            log_directory=tmp_path,
+            log_file="concurrent.log",
+            use_queue=True,
+            add_console=False,
+        )
+
+        def write_messages(thread_id: int):
+            for i in range(20):
+                logger.info(f"thread_{thread_id}_msg_{i}")
+
+        threads = [
+            threading.Thread(target=write_messages, args=(t,)) for t in range(5)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        logger.shutdown()
+
+        log_content = (tmp_path / "concurrent.log").read_text()
+        for thread_id in range(5):
+            for i in range(20):
+                assert f"thread_{thread_id}_msg_{i}" in log_content
+        close_logger(logger)
+
+
+def test_rotating_file_handler_rotates(tmp_path: Path) -> None:
+    """rotate_file=True must produce backup files after the size threshold."""
+    logger = PyLogShield(
+        name="test_rotation_unique",
+        log_directory=tmp_path,
+        log_file="rotate.log",
+        rotate_file=True,
+        rotate_max_bytes=500,
+        rotate_backup_count=2,
+        add_console=False,
+    )
+    # Write enough data to force at least one rotation (500 bytes / ~30 bytes per line)
+    for i in range(50):
+        logger.info("x" * 20)
+    for h in logger.handlers:
+        h.flush()
+    close_logger(logger)
+
+    log_files = list(tmp_path.glob("rotate.log*"))
+    assert len(log_files) > 1, (
+        f"Expected rotation to create backup files, found: {log_files}"
+    )
