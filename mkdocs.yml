@@ -21,24 +21,24 @@ theme:
     edit: material/pencil
     view: material/eye
   palette:
-    # Light mode
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: indigo
-      accent: amber
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    # Dark mode
+    # Dark mode (default)
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: amber
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
   font:
-    text: Inter
+    text: DM Sans
     code: JetBrains Mono
   features:
     # Navigation
@@ -184,6 +184,9 @@ markdown_extensions:
 # Customization
 extra_css:
   - css/extra.css
+
+extra_javascript:
+  - js/extra.js
 
 extra:
   generator: false

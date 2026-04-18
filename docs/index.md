@@ -4,27 +4,82 @@ hide:
   - toc
 ---
 
-<div class="hero" markdown>
-<img src="img/pylogshield.png" alt="PyLogShield Logo">
-  
-**Secure, Production-Ready Logging for Python**
+<div class="pls-hero">
 
-A logging library designed for data professionals and developers who need reliable, secure logging with minimal setup.
+<span class="pls-hero__badge">Python 3.9+ &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; Zero Required Dependencies</span>
+
+<img src="img/pylogshield.png" alt="PyLogShield" class="pls-hero__logo">
+
+<h1 class="pls-hero__title">
+  Secure. Structured.<br>
+  <span>Production-Ready</span> Logging.
+</h1>
+
+<p class="pls-hero__subtitle">
+  A logging library for data professionals and developers who need reliable, secure logging with minimal setup — built on Python's standard <code>logging</code> module.
+</p>
+
+<div class="pls-hero__actions">
 
 [Get Started](installation.md){ .md-button .md-button--primary }
 [View on GitHub](https://github.com/vertex-ai-automations/pylogshield){ .md-button }
 
 </div>
 
----
+<div class="pls-terminal">
+  <div class="pls-terminal__bar">
+    <span class="pls-terminal__dot pls-terminal__dot--red"></span>
+    <span class="pls-terminal__dot pls-terminal__dot--amber"></span>
+    <span class="pls-terminal__dot pls-terminal__dot--green"></span>
+    <span class="pls-terminal__label">python — app.py</span>
+  </div>
+  <div class="pls-terminal__body">
+    <span class="pls-terminal__line pls-terminal__line--comment"># secure, structured logging in two lines</span>
+    <span class="pls-terminal__line pls-terminal__line--prompt">from pylogshield import get_logger</span>
+    <span class="pls-terminal__line pls-terminal__line--blank"></span>
+    <span class="pls-terminal__line pls-terminal__line--prompt">logger = get_logger("api", enable_json=True, use_queue=True)</span>
+    <span class="pls-terminal__line pls-terminal__line--blank"></span>
+    <span class="pls-terminal__line pls-terminal__line--comment"># sensitive fields masked automatically</span>
+    <span class="pls-terminal__line pls-terminal__line--prompt">logger.info({"user": "alice", "password": "s3cr3t"}, mask=True)</span>
+    <span class="pls-terminal__line pls-terminal__line--masked">→ {"timestamp":"2026-04-17T10:22:01Z","level":"INFO","message":{"user":"alice","password":"***"}}</span>
+    <span class="pls-terminal__line pls-terminal__line--blank"></span>
+    <span class="pls-terminal__line pls-terminal__line--comment"># context propagates through the entire request</span>
+    <span class="pls-terminal__line pls-terminal__line--prompt">with logger.context(request_id="req-8f2c", user_id=42):</span>
+    <span class="pls-terminal__line pls-terminal__line--prompt">&nbsp;&nbsp;&nbsp;&nbsp;logger.info("Order processed")</span>
+    <span class="pls-terminal__line pls-terminal__line--info">→ {"level":"INFO","request_id":"req-8f2c","user_id":42,"message":"Order processed"}</span>
+    <span class="pls-terminal__line pls-terminal__line--blank"></span>
+    <span class="pls-terminal__line pls-terminal__line--prompt"><span class="pls-terminal__cursor"></span></span>
+  </div>
+</div>
+
+</div>
+
+<div class="pls-stats">
+  <div class="pls-stat">
+    <span class="pls-stat__value">11</span>
+    <span class="pls-stat__label">Features</span>
+  </div>
+  <div class="pls-stat">
+    <span class="pls-stat__value">0</span>
+    <span class="pls-stat__label">Required Deps</span>
+  </div>
+  <div class="pls-stat">
+    <span class="pls-stat__value">3.9+</span>
+    <span class="pls-stat__label">Python</span>
+  </div>
+  <div class="pls-stat">
+    <span class="pls-stat__value">MIT</span>
+    <span class="pls-stat__label">License</span>
+  </div>
+</div>
 
 <div align="center" markdown>
 
-[![PyPI](https://img.shields.io/pypi/v/pylogshield?color=indigo&logo=pypi&logoColor=white)](https://pypi.org/project/pylogshield/)
-[![Python](https://img.shields.io/pypi/pyversions/pylogshield?color=indigo&logo=python&logoColor=white)](https://pypi.org/project/pylogshield/)
-[![License](https://img.shields.io/badge/license-MIT-indigo.svg)](https://github.com/vertex-ai-automations/pylogshield/blob/main/LICENSE.txt)
-[![Downloads](https://img.shields.io/pypi/dm/pylogshield?color=indigo)](https://pypi.org/project/pylogshield/)
-[![CI](https://img.shields.io/github/actions/workflow/status/vertex-ai-automations/pylogshield/release.yml?branch=main&label=CI&logo=github)](https://github.com/vertex-ai-automations/pylogshield/actions)
+[![PyPI](https://img.shields.io/pypi/v/pylogshield?color=%2300e5a0&logo=pypi&logoColor=white&labelColor=%230c1120)](https://pypi.org/project/pylogshield/)
+[![Python](https://img.shields.io/pypi/pyversions/pylogshield?color=%2300e5a0&logo=python&logoColor=white&labelColor=%230c1120)](https://pypi.org/project/pylogshield/)
+[![License](https://img.shields.io/badge/license-MIT-%2300e5a0.svg?labelColor=%230c1120)](https://github.com/vertex-ai-automations/pylogshield/blob/main/LICENSE.txt)
+[![Downloads](https://img.shields.io/pypi/dm/pylogshield?color=%2300e5a0&labelColor=%230c1120)](https://pypi.org/project/pylogshield/)
+[![CI](https://img.shields.io/github/actions/workflow/status/vertex-ai-automations/pylogshield/release.yml?branch=main&label=CI&logo=github&labelColor=%230c1120&color=%2300e5a0)](https://github.com/vertex-ai-automations/pylogshield/actions)
 
 </div>
 
@@ -32,7 +87,7 @@ A logging library designed for data professionals and developers who need reliab
 
 ## Why PyLogShield?
 
-PyLogShield extends Python's standard `logging` module with production-ready features commonly needed in data engineering and application development—without the complexity.
+PyLogShield extends Python's standard `logging` module with production-ready features commonly needed in data engineering and application development — without complexity or mandatory dependencies.
 
 <div class="feature-grid" markdown>
 
@@ -40,7 +95,7 @@ PyLogShield extends Python's standard `logging` module with production-ready fea
 
 ### :material-shield-lock: Sensitive Data Masking
 
-Automatically masks passwords, tokens, API keys, and other sensitive fields. Never accidentally leak credentials in your logs again.
+Automatically masks passwords, tokens, API keys, and custom fields. Never accidentally leak credentials in your logs again.
 
 ```python
 logger.info({"password": "secret"}, mask=True)
@@ -67,7 +122,7 @@ logger.info("Retry")  # Suppressed (within 2s)
 
 ### :material-code-json: JSON Formatting
 
-Structured JSON output with ISO 8601 timestamps, perfect for log aggregation tools like ELK, Splunk, and CloudWatch.
+Structured JSON with ISO 8601 timestamps. Ready for ELK, Splunk, CloudWatch, and Datadog.
 
 ```python
 logger = get_logger("app", enable_json=True)
@@ -95,7 +150,7 @@ logger = get_logger("app",
 
 ### :material-lightning-bolt: Async Logging
 
-Offload logging to a background thread for improved performance in high-throughput applications.
+Offload logging to a background thread via `QueueHandler`. Non-blocking for high-throughput apps.
 
 ```python
 logger = get_logger("app", use_queue=True)
@@ -108,7 +163,7 @@ logger = get_logger("app", use_queue=True)
 
 ### :material-console: CLI Log Viewer
 
-View and follow logs from the command line with rich formatting and filtering.
+View and follow logs from the command line with rich formatting and level filtering.
 
 ```bash
 pylogshield follow -f app.log -l ERROR
@@ -120,7 +175,7 @@ pylogshield follow -f app.log -l ERROR
 
 ### :material-arrow-right-circle: Context Propagation
 
-Inject structured fields into every log record within a code block — thread-safe and asyncio-safe via Python's `contextvars`.
+Inject structured fields into every log within a block — thread-safe and asyncio-safe via `contextvars`.
 
 ```python
 with log_context(request_id="abc", user_id=42):
@@ -188,14 +243,14 @@ add_sensitive_fields(["ssn", "credit_card"])
 logger = get_logger(
     "production_app",
     log_level="INFO",
-    enable_json=True,           # Structured JSON output
-    rotate_file=True,           # Auto-rotate logs
-    rotate_max_bytes=10_000_000,# 10 MB per file
-    rate_limit_seconds=0.5,     # Prevent flooding
-    use_queue=True,             # Async logging
-    queue_maxsize=50_000,       # Cap queue memory
-    enable_metrics=True,        # Track log stats
-    enable_context=True,        # Structured context injection
+    enable_json=True,            # Structured JSON output
+    rotate_file=True,            # Auto-rotate logs
+    rotate_max_bytes=10_000_000, # 10 MB per file
+    rate_limit_seconds=0.5,      # Prevent flooding
+    use_queue=True,              # Async logging
+    queue_maxsize=50_000,        # Cap queue memory
+    enable_metrics=True,         # Track log stats
+    enable_context=True,         # Structured context injection
 )
 
 logger.info("Production logger ready")
