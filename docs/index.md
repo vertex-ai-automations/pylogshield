@@ -6,7 +6,7 @@ hide:
 
 <div class="pls-hero">
 
-<span class="pls-hero__badge">Python 3.9+ &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; Zero Required Dependencies</span>
+<span class="pls-hero__badge">Python 3.8+ &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; Minimal Dependencies</span>
 
 <img src="img/pylogshield.png" alt="PyLogShield" class="pls-hero__logo">
 
@@ -64,7 +64,7 @@ hide:
     <span class="pls-stat__label">Required Deps</span>
   </div>
   <div class="pls-stat">
-    <span class="pls-stat__value">3.9+</span>
+    <span class="pls-stat__value">3.8+</span>
     <span class="pls-stat__label">Python</span>
   </div>
   <div class="pls-stat">
@@ -87,7 +87,7 @@ hide:
 
 ## Why PyLogShield?
 
-PyLogShield extends Python's standard `logging` module with production-ready features commonly needed in data engineering and application development — without complexity or mandatory dependencies.
+PyLogShield extends Python's standard `logging` module with production-ready features commonly needed in data engineering and application development — without complexity. Requires only `rich` and `typer`.
 
 <div class="feature-grid" markdown>
 

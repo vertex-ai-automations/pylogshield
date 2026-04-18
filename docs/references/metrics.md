@@ -24,7 +24,7 @@ metrics = logger.get_metrics()
 # Count only
 if logger.metrics_handler:
     print(logger.metrics_handler.counts())
-    # Counter({'INFO': 1, 'ERROR': 1})
+    # {'INFO': 1, 'ERROR': 1}
 
 # Reset counters
     logger.metrics_handler.reset()
