@@ -114,9 +114,10 @@ class ContextScrubber(logging.Filter):
                 record.__dict__.pop(k, None)
         extra = record.__dict__.get("extra", None)
         if isinstance(extra, dict):
-            for k in list(extra.keys()):
-                if str(k).upper().startswith(self._forbidden_prefixes):
-                    extra.pop(k, None)
+            record.__dict__["extra"] = {
+                k: v for k, v in extra.items()
+                if not str(k).upper().startswith(self._forbidden_prefixes)
+            }
         return True
 
     def __repr__(self) -> str:
