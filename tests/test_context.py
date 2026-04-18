@@ -36,3 +36,31 @@ def test_same_instance_warns_only_once():
             filt.filter(record2)  # Second call — same key
 
     assert len(w) == 1, f"Expected 1 warning, got {len(w)}"
+
+
+import asyncio
+from pylogshield.context import async_log_context, get_log_context
+
+
+async def _task(task_id: str, results: dict):
+    async with async_log_context(task_id=task_id):
+        await asyncio.sleep(0.01)  # Yield to allow interleaving
+        results[task_id] = get_log_context().get("task_id")
+
+
+def test_async_context_isolation_in_gather():
+    """Concurrent asyncio tasks must have isolated context (no bleed-through)."""
+    results = {}
+
+    async def main():
+        await asyncio.gather(
+            _task("A", results),
+            _task("B", results),
+            _task("C", results),
+        )
+
+    asyncio.run(main())
+
+    assert results["A"] == "A", f"Task A saw wrong context: {results['A']}"
+    assert results["B"] == "B", f"Task B saw wrong context: {results['B']}"
+    assert results["C"] == "C", f"Task C saw wrong context: {results['C']}"
