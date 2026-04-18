@@ -161,3 +161,40 @@ class TestRateLimiterThreadSafety:
             t.join()
 
         assert len(errors) == 0
+
+
+def test_overflow_eviction_removes_oldest():
+    """When max_entries is exceeded, the oldest entry is evicted."""
+    from pylogshield.limiter import RateLimiter
+    limiter = RateLimiter(min_interval=0.0, max_entries=3, purge_after=100.0)
+
+    limiter.should_log("app", 20, "msg_a")
+    limiter.should_log("app", 20, "msg_b")
+    limiter.should_log("app", 20, "msg_c")
+    assert limiter.tracked_messages == 3
+
+    # Adding msg_d should evict msg_a (the oldest)
+    limiter.should_log("app", 20, "msg_d")
+    assert limiter.tracked_messages <= 3
+
+    # msg_a should be allowed again (treated as new — it was evicted)
+    allowed = limiter.should_log("app", 20, "msg_a")
+    assert allowed, "Evicted entry should be allowed as a new message"
+
+
+def test_eviction_respects_lru_order():
+    """The least-recently-used message is evicted first, not insertion order."""
+    from pylogshield.limiter import RateLimiter
+    import time
+    limiter = RateLimiter(min_interval=0.0, max_entries=2, purge_after=100.0)
+
+    limiter.should_log("app", 20, "old_msg")
+    time.sleep(0.01)
+    limiter.should_log("app", 20, "new_msg")
+    assert limiter.tracked_messages == 2
+
+    # Adding a third should evict old_msg, not new_msg
+    limiter.should_log("app", 20, "third_msg")
+    assert limiter.tracked_messages <= 2
+    # old_msg should be re-allowed (it was evicted)
+    assert limiter.should_log("app", 20, "old_msg")

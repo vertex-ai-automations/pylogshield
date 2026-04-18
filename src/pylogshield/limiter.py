@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import time
+from collections import OrderedDict
 from threading import RLock
-from typing import Dict, Tuple
+from typing import Tuple
 
 
 class RateLimiter:
@@ -50,7 +51,7 @@ class RateLimiter:
         self.min_interval = float(min_interval)
         self.max_entries = int(max_entries)
         self.purge_after = float(purge_after)
-        self._last_log_time: Dict[Tuple[str, int, str], float] = {}
+        self._last_log_time: OrderedDict = OrderedDict()
         self._last_purge = time.monotonic()
         self._lock = RLock()
         self._suppressed_count = 0  # Track how many messages were suppressed
@@ -78,22 +79,24 @@ class RateLimiter:
         now = time.monotonic()
         k = self._key(logger_name, level, message)
         with self._lock:
+            # Time-based purge of stale entries
             if now - self._last_purge >= self.purge_after:
                 cutoff = now - (self.purge_after * 5)
-                self._last_log_time = {
-                    kk: t for kk, t in self._last_log_time.items() if t >= cutoff
-                }
-                if len(self._last_log_time) > self.max_entries:
-                    # drop oldest
-                    to_drop = len(self._last_log_time) - self.max_entries
-                    for kk, _ in sorted(
-                        self._last_log_time.items(), key=lambda kv: kv[1]
-                    )[:to_drop]:
-                        self._last_log_time.pop(kk, None)
+                to_delete = [kk for kk, t in self._last_log_time.items() if t < cutoff]
+                for kk in to_delete:
+                    del self._last_log_time[kk]
                 self._last_purge = now
+
+            # Overflow eviction: pop oldest (front) until within limit
+            # Do this BEFORE the rate check so we have room before inserting
+            while len(self._last_log_time) >= self.max_entries:
+                self._last_log_time.popitem(last=False)
 
             prev = self._last_log_time.get(k, -1e12)
             if (now - prev) >= self.min_interval:
+                # Move to end (most-recently-used) on allow
+                if k in self._last_log_time:
+                    self._last_log_time.move_to_end(k)
                 self._last_log_time[k] = now
                 return True
             self._suppressed_count += 1
