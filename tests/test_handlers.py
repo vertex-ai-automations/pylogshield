@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import tempfile
+import warnings
 from pathlib import Path
 
 import pytest
@@ -146,6 +147,29 @@ class TestJsonFormatter:
         repr_str = repr(formatter)
         assert "JsonFormatter" in repr_str
         assert "indent=2" in repr_str
+
+    def test_json_formatter_context_key_does_not_clobber_level(self) -> None:
+        """A context key named 'level' must not overwrite the log level."""
+        formatter = JsonFormatter()
+        record = logging.LogRecord("app", logging.INFO, "", 0, "hello", (), None)
+        # Simulate ContextFilter injecting a 'level' key
+        record.__dict__["level"] = "FAKE_LEVEL"
+        record.__dict__["_pylogshield_ctx_keys"] = frozenset({"level"})
+
+        output = json.loads(formatter.format(record))
+        assert output["level"] == "INFO", (
+            f"Reserved key 'level' was clobbered: got {output['level']!r}"
+        )
+
+    def test_json_formatter_non_reserved_context_key_is_promoted(self) -> None:
+        """Non-reserved context keys must still appear in the envelope."""
+        formatter = JsonFormatter()
+        record = logging.LogRecord("app", logging.INFO, "", 0, "hello", (), None)
+        record.__dict__["request_id"] = "abc-123"
+        record.__dict__["_pylogshield_ctx_keys"] = frozenset({"request_id"})
+
+        output = json.loads(formatter.format(record))
+        assert output.get("request_id") == "abc-123"
 
 
 class TestCreateConsoleHandler:

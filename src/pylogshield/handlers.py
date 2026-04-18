@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import socket
+import warnings
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -14,6 +15,12 @@ try:
     _HAS_RICH = True
 except ImportError:
     _HAS_RICH = False
+
+
+_ENVELOPE_RESERVED: frozenset = frozenset({
+    "timestamp", "host", "logger", "level", "message",
+    "exc_info", "stack_info", "extra",
+})
 
 
 def _standard_formatter() -> logging.Formatter:
@@ -124,6 +131,13 @@ class JsonFormatter(logging.Formatter):
         # than being buried under "extra".
         ctx_keys: frozenset = getattr(record, "_pylogshield_ctx_keys", frozenset())
         for k in ctx_keys:
+            if k in _ENVELOPE_RESERVED:
+                warnings.warn(
+                    f"pylogshield: context key {k!r} conflicts with a reserved JSON "
+                    f"envelope field and will be skipped.",
+                    stacklevel=5,
+                )
+                continue
             envelope[k] = record.__dict__.get(k)
 
         if record.exc_info:
