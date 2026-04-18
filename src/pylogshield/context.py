@@ -113,9 +113,6 @@ _LOGRECORD_RESERVED: FrozenSet[str] = frozenset({
     "taskName",
 })
 
-# Track keys that have already triggered a warning to warn only once each.
-_warned_keys: set = set()
-
 
 class ContextFilter(logging.Filter):
     """Logging filter that injects the active log context into every LogRecord.
@@ -142,13 +139,17 @@ class ContextFilter(logging.Filter):
     ...     logger.info("deployed")   # record.env == "prod"
     """
 
+    def __init__(self, name: str = "") -> None:
+        super().__init__(name)
+        self._warned_keys: set = set()
+
     def filter(self, record: logging.LogRecord) -> bool:
         ctx: Dict[str, Any] = get_log_context()
         safe_ctx: Dict[str, Any] = {}
         for key, val in ctx.items():
             if key in _LOGRECORD_RESERVED:
-                if key not in _warned_keys:
-                    _warned_keys.add(key)
+                if key not in self._warned_keys:
+                    self._warned_keys.add(key)
                     warnings.warn(
                         f"pylogshield: context key {key!r} conflicts with a "
                         f"standard LogRecord attribute and will be ignored.",
