@@ -71,6 +71,10 @@ ipython_config.py
 
 # mkdocs documentation
 /site
+/public
+
+# Internal planning
+docs/superpowers/
 
 # Model saving / checkpointing
 *.pt
