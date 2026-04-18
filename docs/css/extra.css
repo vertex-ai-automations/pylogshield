@@ -159,12 +159,12 @@ html { scroll-behavior: smooth; }
 .md-header {
   background: linear-gradient(
     135deg,
-    #03060d 0%,
-    #060e1c 40%,
-    #081224 100%
+    #002a1a 0%,
+    #003d24 40%,
+    #00c485 100%
   );
-  border-bottom: 1px solid var(--pls-border);
-  box-shadow: 0 1px 0 var(--pls-border), 0 4px 32px rgba(0,0,0,0.5);
+  border-bottom: 1px solid rgba(0, 229, 160, 0.25);
+  box-shadow: 0 1px 0 rgba(0,229,160,0.2), 0 4px 32px rgba(0,0,0,0.5);
   position: relative;
   overflow: hidden;
 }
@@ -207,9 +207,9 @@ html { scroll-behavior: smooth; }
 }
 
 [data-md-color-scheme="default"] .md-header {
-  background: linear-gradient(135deg, #f0f4fc 0%, #e5edf8 100%);
-  border-bottom: 1px solid var(--pls-border);
-  box-shadow: 0 1px 0 var(--pls-border);
+  background: linear-gradient(135deg, #004d30 0%, #007a54 50%, #00c485 100%);
+  border-bottom: 1px solid rgba(0,122,84,0.4);
+  box-shadow: 0 1px 0 rgba(0,122,84,0.3);
 }
 
 [data-md-color-scheme="default"] .md-header::after {
@@ -381,8 +381,8 @@ html { scroll-behavior: smooth; }
 }
 
 .pls-hero__logo {
-  width: 72px;
-  height: 72px;
+  width: 120px;
+  height: 120px;
   margin: 0 auto 1.5rem;
   display: block;
   filter: drop-shadow(0 0 16px rgba(0,229,160,0.4));
