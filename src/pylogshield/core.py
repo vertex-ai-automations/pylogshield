@@ -361,12 +361,18 @@ class PyLogShield(logging.Logger):
 
         if mask:
             # Scrub sensitive data from exception args so they don't leak
-            # through the formatted traceback.
+            # through the formatted traceback, then restore originals after
+            # logging so the live exception object is not permanently mutated.
             exc_info = kwargs.get("exc_info")
+            _exc_val = None
+            _original_args = None
+
             if exc_info and exc_info is not True:
                 # exc_info may be a (type, value, tb) tuple
                 exc_val = exc_info[1] if isinstance(exc_info, tuple) else None
                 if exc_val is not None and hasattr(exc_val, "args"):
+                    _exc_val = exc_val
+                    _original_args = exc_val.args
                     masked_args = tuple(
                         self._mask_string(a) if isinstance(a, str) else a
                         for a in exc_val.args
@@ -374,11 +380,13 @@ class PyLogShield(logging.Logger):
                     try:
                         exc_val.args = masked_args
                     except AttributeError:
-                        pass
+                        _exc_val = None
             elif exc_info is True:
                 import sys
                 exc_val = sys.exc_info()[1]
                 if exc_val is not None and hasattr(exc_val, "args"):
+                    _exc_val = exc_val
+                    _original_args = exc_val.args
                     masked_args = tuple(
                         self._mask_string(a) if isinstance(a, str) else a
                         for a in exc_val.args
@@ -386,7 +394,17 @@ class PyLogShield(logging.Logger):
                     try:
                         exc_val.args = masked_args
                     except AttributeError:
+                        _exc_val = None
+
+            try:
+                super().log(level, processed, *args, **kwargs)
+            finally:
+                if _exc_val is not None and _original_args is not None:
+                    try:
+                        _exc_val.args = _original_args
+                    except AttributeError:
                         pass
+            return  # Already logged above; skip the super().log() at the bottom
 
         super().log(level, processed, *args, **kwargs)
 

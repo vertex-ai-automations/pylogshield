@@ -355,3 +355,27 @@ class TestExceptionMasking:
         assert "ValueError: password=supersecret" not in output
         # The masked form should appear instead
         assert "ValueError:" in output
+
+
+def test_exception_args_not_mutated(basic_logger):
+    """Masking must not permanently alter the exception's .args."""
+    err = ValueError("password: secret123")
+    try:
+        raise err
+    except ValueError:
+        basic_logger.exception("error occurred", mask=True, exc_info=True)
+
+    # Original exception args must be intact after logging
+    assert err.args == ("password: secret123",)
+
+
+def test_exception_args_not_mutated_explicit_tuple(basic_logger):
+    """Same guarantee when exc_info is passed as a tuple."""
+    import sys
+    err = ValueError("token: abc-123")
+    try:
+        raise err
+    except ValueError:
+        ei = sys.exc_info()
+    basic_logger.error("oops", mask=True, exc_info=ei)
+    assert err.args == ("token: abc-123",)
