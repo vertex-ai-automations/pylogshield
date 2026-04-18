@@ -59,6 +59,48 @@ class TestLogViewer:
         lines = viewer._tail_lines(100)
         assert len(lines) == 5
 
+    def test_tail_lines_handles_crlf(self, tmp_path: Path) -> None:
+        """_tail_lines must correctly split Windows CRLF line endings in large files."""
+        log_file = tmp_path / "test.log"
+        # Create a file large enough to trigger binary chunked reading (>1MB)
+        lines_data = []
+        padding = "x" * 100  # Add padding to make lines larger
+        for i in range(100000):
+            lines_data.append(f"line{i} {padding}\r\n".encode())
+        content = b"".join(lines_data)
+        log_file.write_bytes(content)
+
+        assert log_file.stat().st_size > 1_000_000, f"File size: {log_file.stat().st_size}"
+
+        viewer = LogViewer(log_file)
+        tail_lines = viewer._tail_lines(10)
+        tail_lines = [l.strip() for l in tail_lines if l.strip()]
+        # Check the last few lines
+        assert "line99999" in tail_lines[-1], f"Got: {tail_lines}"
+
+    def test_tail_lines_handles_cr_only(self, tmp_path: Path) -> None:
+        """_tail_lines must handle old Mac \\r-only line endings in large files."""
+        log_file = tmp_path / "test.log"
+        # Create a file large enough to trigger binary chunked reading (>1MB)
+        lines_data = []
+        padding = "x" * 100  # Add padding to make lines larger
+        for i in range(100000):
+            lines_data.append(f"line{i} {padding}\r".encode())
+        content = b"".join(lines_data)
+        log_file.write_bytes(content)
+
+        assert log_file.stat().st_size > 1_000_000, f"File size: {log_file.stat().st_size}"
+
+        viewer = LogViewer(log_file)
+        tail_lines = viewer._tail_lines(10)
+        # Count the actual number of distinct lines returned
+        tail_lines = [l.strip() for l in tail_lines if l.strip()]
+        # With CR-only endings, we should get 10 separate lines
+        # The bug would cause them to be concatenated into fewer lines
+        assert len(tail_lines) >= 5, f"Expected at least 5 lines, got {len(tail_lines)}: {tail_lines}"
+        # Check the last line contains the highest line number
+        assert "line99999" in tail_lines[-1], f"Last line doesn't contain line99999. Got: {tail_lines[-1]}"
+
     def test_tail_nonexistent_file(self, temp_log_dir: Path) -> None:
         """Test tailing non-existent file."""
         viewer = LogViewer(temp_log_dir / "nonexistent.log")

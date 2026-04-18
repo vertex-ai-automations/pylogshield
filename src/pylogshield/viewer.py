@@ -106,9 +106,9 @@ class LogViewer:
                 chunk = f.read(read_size)
                 buffer = chunk + buffer
 
-                # Split on newline bytes (keeping partial line in buffer).
-                # Strip \r to handle Windows \r\n line endings in binary mode.
-                split_lines = [l.rstrip(b"\r") for l in buffer.split(b"\n")]
+                # Split on any line ending: \n, \r\n, or \r (old Mac).
+                # splitlines() handles all three correctly.
+                split_lines = buffer.splitlines()
 
                 # If we have more than one segment, all but the first are complete
                 if len(split_lines) > 1:
@@ -118,7 +118,7 @@ class LogViewer:
 
             # Don't forget the remaining buffer
             if buffer:
-                byte_lines = [buffer.rstrip(b"\r")] + byte_lines
+                byte_lines = [buffer.strip()] + byte_lines
 
         # Decode all byte lines at once to avoid splitting multi-byte sequences
         lines = [bl.decode("utf-8", errors="replace") for bl in byte_lines]
