@@ -53,7 +53,8 @@ class LogMetricsHandler(logging.Handler):
         dict of str to int
             Dictionary mapping level names (e.g., "INFO", "ERROR") to their counts.
         """
-        return dict(self._counts)
+        with self._lock:
+            return dict(self._counts)
 
     def total_count(self) -> int:
         """Return the total number of logs emitted.
@@ -63,7 +64,8 @@ class LogMetricsHandler(logging.Handler):
         int
             Total count across all levels.
         """
-        return sum(self._counts.values())
+        with self._lock:
+            return sum(self._counts.values())
 
     def elapsed_seconds(self) -> float:
         """Return seconds elapsed since handler creation or last reset.
@@ -88,7 +90,7 @@ class LogMetricsHandler(logging.Handler):
             - ``start``: Start timestamp (monotonic)
         """
         with self._lock:
-            elapsed = max(1e-9, self.elapsed_seconds())
+            elapsed = max(0.001, self.elapsed_seconds())
             rates: Dict[str, Any] = {
                 lvl: cnt / elapsed for lvl, cnt in self._counts.items()
             }

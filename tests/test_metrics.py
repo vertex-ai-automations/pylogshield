@@ -133,3 +133,41 @@ class TestLogMetricsHandler:
 
         # Cleanup
         logger.removeHandler(handler)
+
+    def test_counts_is_thread_safe(self) -> None:
+        """counts() must return a consistent snapshot under concurrent emit()."""
+        import threading
+
+        handler = LogMetricsHandler()
+        errors = []
+
+        def emit_many():
+            r = logging.LogRecord("t", logging.INFO, "", 0, "m", (), None)
+            for _ in range(1000):
+                handler.emit(r)
+
+        def read_many():
+            for _ in range(1000):
+                try:
+                    c = handler.counts()
+                    assert isinstance(c, dict)
+                except Exception as e:
+                    errors.append(e)
+
+        threads = [threading.Thread(target=emit_many) for _ in range(4)]
+        threads += [threading.Thread(target=read_many) for _ in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Thread safety errors: {errors}"
+
+    def test_logs_per_second_minimum_denominator(self) -> None:
+        """Rates must not be astronomically high immediately after construction."""
+        handler = LogMetricsHandler()
+        r = logging.LogRecord("t", logging.INFO, "", 0, "m", (), None)
+        handler.emit(r)
+        metrics = handler.logs_per_second()
+        # With max(1e-9, elapsed) rate could be ~1e9; with max(0.001) capped at 1000
+        assert metrics["INFO"] <= 1001, f"Unrealistic rate: {metrics['INFO']}"
