@@ -50,3 +50,6 @@ dependencies = {file = ["requirements.txt"]}
 # Auto generate _version.py with the corresponding git tag
 version_file = "src/pylogshield/_version.py"
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
