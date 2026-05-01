@@ -56,6 +56,8 @@ python -m build
 
 - **`middleware.py`** - `PyLogShieldMiddleware`: FastAPI/Starlette ASGI middleware that automatically injects `request_id`, `http_method`, `http_path`, and `client_ip` into every log record during a request. Requires `pip install "pylogshield[fastapi]"`. The logger passed to it should have `enable_context=True`.
 
+- **`decorators.py`** - `log_exceptions` and `trace` decorators: wrap sync or async functions to log exceptions, call args, and return values. `log_exceptions(logger, log_calls, log_returns, raise_exception, mask)` — sync/async dispatch is automatic. `trace(logger, mask)` is shorthand for `log_exceptions(log_calls=True, log_returns=True)`. Masking applies to message strings via the standard regex but does **not** apply to raw `kwargs` dict repr.
+
 ### Public API (`__init__.py`)
 
 Main export is `get_logger()` - returns a singleton `PyLogShield` instance by name, integrates with Python's logging manager.
@@ -71,6 +73,11 @@ Main export is `get_logger()` - returns a singleton `PyLogShield` instance by na
 - `logger.set_log_level(level)` changes the logger and all its handlers at runtime
 - `logger.get_metrics()` returns counts and rates per level when `enable_metrics=True`; returns `None` otherwise
 - `get_logger()` raises `TypeError` if a non-PyLogShield logger with the same name already exists; use `force=True` to replace it
+- `queue_maxsize` (default `0` = unbounded) caps the async queue when `use_queue=True`; when full, new messages are **dropped silently** via non-blocking put
+- `log_context` / `async_log_context` support nesting — inner fields merge on top of outer; the prior context is fully restored on exit (including on exception). Use `get_log_context()` from `pylogshield.context` to read the active context dict
+- `ContextFilter` warns once per conflicting key if a context field name matches a reserved `LogRecord` attribute (e.g. `name`, `msg`) — these keys are skipped, not overwritten
+- `warn` is an alias for `warning` on `PyLogShield`
+- `from_config` accepts `log_filter` as a dict `{"keywords": [...], "include": bool, "case_insensitive": bool}`, a list/set of keywords, or a `logging.Filter` instance
 - Version auto-generated from git tags via `setuptools_scm` (see `_version.py`)
 - The package is also runnable as `python -m pylogshield` (entry point: `__main__.py`)
 - `get_sensitive_pattern()` is **not** re-exported from `pylogshield.__init__`; import it directly from `pylogshield.config`
@@ -109,9 +116,11 @@ pytest tests/test_core.py::TestPyLogShieldMasking::test_mask_dict_password -v
 Test modules:
 - `test_core.py` - PyLogShield class, masking, logging operations
 - `test_config.py` - Sensitive field registry
+- `test_context.py` - ContextFilter warnings, async context isolation
 - `test_filters.py` - KeywordFilter and ContextScrubber
 - `test_limiter.py` - RateLimiter
 - `test_metrics.py` - LogMetricsHandler
+- `test_decorators.py` - log_exceptions and trace decorators (sync, async, masking, trace shorthand)
 - `test_handlers.py` - Handler factories and JsonFormatter
 - `test_utils.py` - LogLevel enum and add_log_level
 - `test_viewer.py` - LogViewer
@@ -119,6 +128,7 @@ Test modules:
 Key fixtures in `conftest.py`:
 - `reset_sensitive_fields` (autouse) — restores `SENSITIVE_FIELDS` to defaults after every test
 - `basic_logger` / `json_logger` — pre-built loggers writing to a temp dir with `add_console=False`
+- `temp_log_dir` / `temp_log_file` — provide a `Path` to a temporary directory/file for tests that need raw file handles
 - `clean_logger_registry` — removes `test_*` loggers from `logging.Logger.manager.loggerDict`; use this in tests that call `get_logger()` directly
 - `close_logger(logger)` helper — closes handlers, calls `shutdown()`, and removes the logger from the registry
 
