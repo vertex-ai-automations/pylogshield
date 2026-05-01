@@ -13,6 +13,7 @@ from pylogshield.core import PyLogShield
 from pylogshield.filters import ContextScrubber, KeywordFilter
 from pylogshield.utils import LogLevel, add_log_level
 from pylogshield.viewer import LogViewer
+from pylogshield.decorators import log_exceptions, trace
 
 from ._version import __version__
 
@@ -29,6 +30,9 @@ __all__ = [
     "PyLogShield",
     "LogLevel",
     "LogViewer",
+    # Decorators
+    "log_exceptions",
+    "trace",
     # Utilities
     "add_log_level",
     "add_sensitive_fields",
