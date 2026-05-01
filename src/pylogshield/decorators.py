@@ -69,13 +69,12 @@ def log_exceptions(
     """
 
     def decorator(func):  # type: ignore[return]
+        caller_info = _get_caller_info(func)
 
         if inspect.iscoroutinefunction(func):
 
             @functools.wraps(func)
             async def async_wrapper(*args: P.args, **kwargs: P.kwargs):
-                caller_info = _get_caller_info(func)
-
                 if log_calls:
                     _log_calls(logger, args, kwargs, caller_info, mask=mask)
 
@@ -104,8 +103,6 @@ def log_exceptions(
 
         @functools.wraps(func)
         def sync_wrapper(*args: P.args, **kwargs: P.kwargs):
-            caller_info = _get_caller_info(func)
-
             if log_calls:
                 _log_calls(logger, args, kwargs, caller_info, mask=mask)
 
