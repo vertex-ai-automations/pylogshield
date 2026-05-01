@@ -82,6 +82,7 @@ nav:
   - API Reference:
       - PyLogShield: references/logger.md
       - Context Propagation: references/context.md
+      - Decorators: references/decorators.md
       - FastAPI Middleware: references/middleware.md
       - Metrics: references/metrics.md
       - LogViewer: references/viewer.md

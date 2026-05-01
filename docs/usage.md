@@ -376,6 +376,37 @@ See the [Context Propagation reference](./references/context.md) for full detail
 
 ---
 
+## Decorators
+
+Wrap any function with automatic exception logging using `log_exceptions`, or enable full entry/exit tracing with `trace`.
+
+```python
+from pylogshield import get_logger, log_exceptions, trace
+
+logger = get_logger("my_app")
+
+# Log exceptions only
+@log_exceptions(logger)
+def fetch_data(url: str) -> dict:
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()
+
+# Full tracing: logs call args, return value, and exceptions
+@trace(logger)
+async def process_item(item_id: int) -> dict:
+    return await db.get(item_id)
+
+# Suppress exceptions and mask sensitive return values
+@log_exceptions(logger, raise_exception=False, log_returns=True, mask=True)
+def get_token(username: str, password: str) -> str:
+    return auth_service.token(username, password)
+```
+
+See the [Decorators reference](./references/decorators.md) for all parameters and examples.
+
+---
+
 ## FastAPI / Starlette Middleware
 
 Automatically inject request context into all logs for a FastAPI app. Requires `pip install "pylogshield[fastapi]"`.
