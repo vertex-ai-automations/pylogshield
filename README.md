@@ -31,6 +31,7 @@
 - [Overview](#-overview)
 - [Features](#-features)
 - [Quick Start](#-quick-start)
+- [Interactive TUI Viewer](#-interactive-tui-viewer)
 - [Terminal Demo](#-terminal-demo)
 - [Security Notes](#️-security-notes)
 - [Contributing](#-contributing)
@@ -62,6 +63,7 @@ Your App  ──►  PyLogShield  ──►  Masking  ──►  Rate Limiter  �
 | ⚡ **Async Logging** | Non-blocking background queue with configurable max size |
 | 🎨 **Rich Console** | Color-coded terminal output via the `rich` library |
 | 🔍 **CLI Log Viewer** | Static and live-follow modes with level/keyword filtering |
+| 🖥️ **Interactive TUI** | Full-screen viewer with live search, filters, export (CSV/JSON/HTML), and live-follow mode |
 | 🧵 **Context Propagation** | Thread-safe and asyncio-safe structured field injection |
 | 🌐 **FastAPI Middleware** | Auto-injects `request_id`, method, path, and client IP |
 | 📊 **Metrics** | Per-level log counts and logs/second tracking |
@@ -136,6 +138,31 @@ app.add_middleware(PyLogShieldMiddleware, logger=logger)
 
 # Every log line automatically includes: request_id, http_method, http_path, client_ip
 ```
+
+---
+
+## 🖥️ Interactive TUI Viewer
+
+Install the optional TUI extra and launch the full-screen interactive log viewer:
+
+```bash
+pip install "pylogshield[tui]"
+
+pylogshield tui --file ~/.logs/myapp.log
+pylogshield tui --file app.log --level ERROR        # start with ERROR+ filter
+pylogshield tui --file app.log --follow             # start in live-follow mode
+```
+
+![PyLogShield Interactive TUI Viewer](docs/screenshots/tui-demo.gif)
+
+| Key | Action |
+|-----|--------|
+| `/` | Focus search bar — filters rows as you type, highlights matches |
+| `Ctrl+F` | Open filter panel — level toggles, time range, logger name |
+| `F` | Toggle live-follow mode — auto-pauses when you scroll up |
+| `E` | Export current filtered view to CSV, JSON, plain text, or HTML |
+| `?` | Show keyboard reference |
+| `Q` | Quit |
 
 ---
 
