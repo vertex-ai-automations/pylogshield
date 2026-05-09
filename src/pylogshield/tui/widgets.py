@@ -382,3 +382,78 @@ class FilterPanel(ModalScreen):
             search_regex=self._state.search_regex,
         )
         self.dismiss(new_state)
+
+from datetime import date as _date
+
+
+class ExportModal(ModalScreen):
+    """Four-format export picker."""
+
+    BINDINGS = [Binding("escape", "dismiss", "Cancel")]
+
+    DEFAULT_CSS = """
+    ExportModal { align: center middle; }
+    ExportModal > Vertical {
+        width: 60; height: auto;
+        background: $surface; border: solid $accent; padding: 1 2;
+    }
+    ExportModal .modal-title { color: $accent; margin-bottom: 1; }
+    ExportModal .export-opt { margin-bottom: 0; }
+    ExportModal #export-status { color: $success; margin-top: 1; display: none; }
+    ExportModal #export-status.visible { display: block; }
+    ExportModal #export-error { color: $error; margin-top: 1; display: none; }
+    ExportModal #export-error.visible { display: block; }
+    """
+
+    _FORMATS = [
+        ("csv",  "CSV (Excel-compatible)"),
+        ("json", "JSON"),
+        ("txt",  "Plain text"),
+        ("html", "HTML report"),
+    ]
+
+    def __init__(self, rows: list, log_path: Path, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._rows = rows
+        self._log_path = log_path
+
+    def compose(self) -> ComposeResult:
+        from textual.containers import Vertical
+        stem = self._log_path.stem
+        today = _date.today().isoformat()
+        with Vertical():
+            yield Label(
+                f"Export {len(self._rows)} rows",
+                classes="modal-title",
+            )
+            for ext, lbl in self._FORMATS:
+                filename = f"{stem}-export-{today}.{ext}"
+                yield Button(
+                    f"{lbl}  →  {filename}",
+                    id=f"export-{ext}",
+                    classes="export-opt",
+                )
+            yield Label("", id="export-status")
+            yield Label("", id="export-error")
+            yield Label(
+                "Esc to cancel · Exports to current directory",
+                classes="section-title",
+            )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        ext = event.button.id.removeprefix("export-")
+        stem = self._log_path.stem
+        today = _date.today().isoformat()
+        out = Path(f"{stem}-export-{today}.{ext}")
+        from pylogshield.tui.exporter import Exporter
+        exp = Exporter(self._rows, out)
+        try:
+            {"csv": exp.to_csv, "json": exp.to_json,
+             "txt": exp.to_text, "html": exp.to_html}[ext]()
+            status = self.query_one("#export-status", Label)
+            status.update(f"Saved → {out.resolve()}")
+            status.add_class("visible")
+        except Exception as exc:
+            err = self.query_one("#export-error", Label)
+            err.update(f"Export failed: {exc}")
+            err.add_class("visible")
