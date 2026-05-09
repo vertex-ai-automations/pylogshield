@@ -13,11 +13,24 @@
     pip install pylogshield
     ```
 
+=== "pip (with Interactive TUI)"
+
+    ```bash
+    # Install with the full-screen interactive TUI log viewer
+    pip install "pylogshield[tui]"
+    ```
+
 === "pip (with FastAPI middleware)"
 
     ```bash
     # Install with FastAPI/Starlette middleware support
     pip install "pylogshield[fastapi]"
+    ```
+
+=== "pip (all extras)"
+
+    ```bash
+    pip install "pylogshield[tui,fastapi]"
     ```
 
 === "Poetry"
@@ -39,12 +52,15 @@ graph LR
     PLS["pylogshield"]
     RICH["rich\nConsole output & viewer"]
     TYPER["typer\nCLI interface"]
+    TEXTUAL["textual\nInteractive TUI\n(optional)"]
     STARLETTE["starlette\nFastAPI middleware\n(optional)"]
 
     PLS -->|required| RICH
     PLS -->|required| TYPER
+    PLS -->|"pip install pylogshield[tui]"| TEXTUAL
     PLS -->|"pip install pylogshield[fastapi]"| STARLETTE
 
+    style TEXTUAL stroke-dasharray: 5 5
     style STARLETTE stroke-dasharray: 5 5
 ```
 

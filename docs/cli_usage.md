@@ -27,6 +27,7 @@ Commands:
 
 | Command | Description |
 |---------|-------------|
+| `tui` | 🖥️ Full-screen interactive TUI viewer with live search, filters, and export. |
 | `view` | 📜 View the last N logs from a file with optional level and keyword filtering. |
 | `follow` | 📡 Live view, auto-refreshes output on new log lines. |
 | `levels` | 🔍 Show all valid logging levels. |
@@ -41,6 +42,134 @@ Commands:
 | `--keyword` | `-k` | Filter logs containing this text (case-insensitive) |
 | `--interval` | `-i` | Refresh interval in seconds (follow only) |
 | `--max-lines` | `-m` | Maximum lines in live view buffer (follow only) |
+
+---
+
+## Interactive TUI Viewer
+
+The TUI provides a full-screen log viewer with live search, multi-filter, export, and live-follow mode — all keyboard-driven, no browser required.
+
+!!! info "Optional dependency"
+    Requires the `[tui]` extra:
+    ```bash
+    pip install "pylogshield[tui]"
+    ```
+
+### Launch
+
+```bash
+# Open a log file in the TUI
+pylogshield tui --file ~/.logs/myapp.log
+
+# Start with ERROR+ level filter already applied
+pylogshield tui --file app.log --level ERROR
+
+# Start directly in live-follow mode
+pylogshield tui --file app.log --follow
+
+# Combine: follow only critical issues
+pylogshield tui --file app.log --level CRITICAL --follow
+```
+
+### Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--file` | `-f` | Path to the log file (required) |
+| `--level` | `-l` | Pre-apply a minimum level filter on launch (e.g. `ERROR`) |
+| `--follow` | | Start in live-follow mode |
+
+### Keyboard Reference
+
+| Key | Action |
+|-----|--------|
+| `/` | Focus the search bar — rows filter as you type |
+| `Ctrl+R` | Toggle regex search mode |
+| `Esc` | Clear search or close any modal |
+| `↑` `↓` | Navigate rows |
+| `PgUp` `PgDn` | Page up / down |
+| `Home` / `End` | First / last row (End also resumes live follow) |
+| `Enter` | Expand full row detail (all fields, raw line) |
+| `Ctrl+F` | Open filter panel (level, time range, logger name) |
+| `F` | Toggle live-follow mode |
+| `E` | Open export modal |
+| `?` | Show keyboard reference |
+| `Q` / `Ctrl+C` | Quit |
+
+### Search
+
+Type `/` to focus the search bar. Rows are filtered instantly as you type, and matching text is **highlighted bold** in the Message column.
+
+Enable regex with `Ctrl+R` — the `[re]` indicator appears in the search bar:
+
+```
+# Plain text search
+/payment
+
+# Regex — match "ERROR" or "CRITICAL" messages
+/^(ERROR|CRITICAL)
+```
+
+### Filter Panel (`Ctrl+F`)
+
+The filter panel stacks multiple filters with AND logic:
+
+- **Level toggles** — show only CRITICAL, ERROR, WARNING, INFO, DEBUG (any combination)
+- **Time range** — Last 1h, Last 6h, Last 24h, or All time
+- **Logger name** — substring match against the logger name field
+
+Active filters appear as removable chips in the bar below the log table. Press `R` inside the panel to reset all filters to defaults.
+
+### Live Follow Mode (`F`)
+
+Press `F` to toggle live-follow — new log lines appear automatically as they are written to the file. The top bar shows `● LIVE` in green when active.
+
+Scrolling up **automatically pauses** follow to let you read without the view jumping. A yellow banner confirms the pause:
+
+```
+⏸  Scrolled up — live follow paused. Press End to resume.
+```
+
+Press `End` to jump to the bottom and resume.
+
+### Export (`E`)
+
+Opens a modal to export the **currently filtered view** (not the full file):
+
+| Format | Output | Use case |
+|--------|--------|----------|
+| **CSV** | UTF-8 with BOM | Open directly in Excel / Google Sheets |
+| **JSON** | Indented array of objects | Programmatic processing, log pipelines |
+| **Plain text** | One line per row | Copy-paste, ticket attachments |
+| **HTML report** | Self-contained file with stats header | Share with stakeholders via email |
+
+Files are saved to the **current working directory** with an auto-generated name:
+
+```
+myapp-export-2026-05-09.csv
+myapp-export-2026-05-09.json
+myapp-export-2026-05-09.txt
+myapp-export-2026-05-09.html
+```
+
+### Row Detail (`Enter`)
+
+Press `Enter` on any row to open a detail panel showing every field:
+
+```
+Row Detail
+──────────────────────────────
+Timestamp:  2026-05-09 00:12:04.221
+Level:      ERROR
+Logger:     payments
+Location:   payments:88
+Message:    Payment failed order_id=ORD-002 reason=card_declined
+Extra:      {"gateway": "stripe"}
+
+2026-05-09 00:12:04.221  ERROR     payments  payments:88  Payment failed...
+──────────────────────────────
+Esc to close
+```
 
 ---
 
