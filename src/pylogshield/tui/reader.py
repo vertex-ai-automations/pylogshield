@@ -7,7 +7,7 @@ import threading
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List
 
 # Matches the current PyLogShield standard formatter:
 # "%(asctime)s.%(msecs)03d  %(levelname)-8s  %(name)s  %(module)s:%(lineno)d  %(message)s"
@@ -45,13 +45,15 @@ class LogReader:
         self._stop = threading.Event()
 
     def _parse_line(self, line: str) -> ParsedLine:
-        line = line.rstrip("\n")
+        line = line.rstrip("\r\n")
         if not line.strip():
             return ParsedLine("", "N/A", "", "", 0, "", line)
 
         # JSON format
         try:
             entry = json.loads(line)
+            if not isinstance(entry, dict):
+                raise ValueError("not a dict")
             extra = {
                 k: v for k, v in entry.items()
                 if k not in {"timestamp", "level", "logger", "message", "host",
@@ -62,7 +64,7 @@ class LogReader:
                 level=entry.get("level", "N/A"),
                 logger=entry.get("logger", ""),
                 module=str(entry.get("module", "")),
-                lineno=int(entry.get("lineno", 0)),
+                lineno=int(entry.get("lineno") or 0),
                 message=str(entry.get("message", "")),
                 raw=line,
                 extra=extra,
@@ -143,6 +145,7 @@ class LogReader:
         interval: float = 0.25,
     ) -> None:
         """Block until stop() is called, invoking callback for each new line."""
+        self._stop.clear()
         if not self.path.exists():
             return
         with self.path.open("r", encoding="utf-8", errors="replace") as f:
@@ -152,7 +155,8 @@ class LogReader:
                 try:
                     cur_size = os.fstat(f.fileno()).st_size
                 except OSError:
-                    cur_size = 0
+                    self._stop.wait(interval)
+                    continue
                 if cur_size < last_size:
                     f.seek(0)
                 line = f.readline()

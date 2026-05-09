@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-import tempfile
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -111,3 +112,42 @@ def test_tail_respects_limit(tmp_path):
 def test_tail_nonexistent_file():
     reader = LogReader(Path("/nonexistent/app.log"))
     assert reader.tail(limit=100) == []
+
+
+# ── LogReader.follow ──────────────────────────────────────────────────────
+
+def test_follow_delivers_new_lines(tmp_path):
+    log = tmp_path / "app.log"
+    log.write_text("2026-05-09 00:12:04.221  INFO      myapp  core:1  initial\n")
+
+    received = []
+    reader = LogReader(log)
+
+    def run():
+        reader.follow(received.append, interval=0.05)
+
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    time.sleep(0.1)  # let follow reach EOF
+
+    with log.open("a") as f:
+        f.write("2026-05-09 00:12:05.000  ERROR     myapp  core:2  new line\n")
+
+    time.sleep(0.2)  # wait for poll
+    reader.stop()
+    t.join(timeout=1.0)
+
+    assert any(r.message == "new line" for r in received)
+
+
+def test_follow_stop_terminates(tmp_path):
+    log = tmp_path / "app.log"
+    log.write_text("")
+
+    reader = LogReader(log)
+    t = threading.Thread(target=reader.follow, args=(lambda r: None,), kwargs={"interval": 0.05}, daemon=True)
+    t.start()
+    time.sleep(0.1)
+    reader.stop()
+    t.join(timeout=1.0)
+    assert not t.is_alive()
