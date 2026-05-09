@@ -512,5 +512,6 @@ class HelpModal(ModalScreen):
                     with Vertical(classes="col"):
                         yield Label(section, classes="section-title")
                         for key, desc in keys:
-                            yield Label(f"  [{key}]  {desc}")
+                            # Double brackets escape Rich markup — [[x]] renders as [x]
+                            yield Label(f"  [[{key}]]  {desc}")
             yield Label("Press Esc or ? to close", classes="section-title")
