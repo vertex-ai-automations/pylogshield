@@ -224,3 +224,13 @@ def test_export_csv_headers(tmp_path, sample_rows):
     assert "module" in headers
     assert "lineno" in headers
     assert "message" in headers
+
+
+def test_export_html_escapes_content(tmp_path):
+    rows = [ParsedLine("2026-05-09 00:12:04.221", "ERROR", "myapp", "core", 1,
+                       "<script>alert('xss')</script>", "raw", {})]
+    path = tmp_path / "out.html"
+    Exporter(rows, path).to_html()
+    content = path.read_text()
+    assert "<script>" not in content
+    assert "&lt;script&gt;" in content

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import csv
+import html
 import json
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
@@ -71,7 +73,6 @@ class Exporter:
         self._filepath.write_text("\n".join(lines), encoding="utf-8")
 
     def to_html(self) -> None:
-        from collections import Counter
         counts: Counter[str] = Counter(r.level for r in self._rows)
         now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         ts_range = ""
@@ -87,16 +88,16 @@ class Exporter:
 
         rows_html = "\n".join(
             f"<tr>"
-            f'<td>{r.timestamp}</td>'
-            f'<td style="color:{_LEVEL_COLOURS.get(r.level,"#ccc")}">{r.level}</td>'
-            f"<td>{r.logger}</td>"
-            f"<td>{r.module}:{r.lineno}</td>"
-            f"<td>{r.message}</td>"
+            f'<td>{html.escape(r.timestamp)}</td>'
+            f'<td style="color:{_LEVEL_COLOURS.get(r.level,"#ccc")}">{html.escape(r.level)}</td>'
+            f"<td>{html.escape(r.logger)}</td>"
+            f"<td>{html.escape(r.module)}:{r.lineno}</td>"
+            f"<td>{html.escape(r.message)}</td>"
             f"</tr>"
             for r in self._rows
         )
 
-        html = f"""<!DOCTYPE html>
+        html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8">
 <title>PyLogShield Export</title>
@@ -124,7 +125,7 @@ tr:hover td {{ background: #1c2128; }}
 <div class="footer">Exported: {now}</div>
 </body>
 </html>"""
-        self._filepath.write_text(html, encoding="utf-8")
+        self._filepath.write_text(html_content, encoding="utf-8")
 
 
 _LEVEL_COLOURS = {
