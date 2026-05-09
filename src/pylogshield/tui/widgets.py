@@ -111,6 +111,10 @@ class LogTable(Static):
     LogTable #error-panel { height: 1fr; color: $error; content-align: center middle; }
     """
 
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._row_map: dict = {}
+
     def compose(self) -> ComposeResult:
         yield DataTable(cursor_type="row", zebra_stripes=True, id="data-table")
 
@@ -129,7 +133,7 @@ class LogTable(Static):
     ) -> None:
         tbl = self.query_one(DataTable)
         tbl.clear()
-        self._row_map: dict = {}
+        self._row_map = {}
         pat = None
         if search_text:
             try:
@@ -176,7 +180,7 @@ class LogTable(Static):
         key = str(event.row_key.value) if event.row_key else None
         if not key:
             return
-        row = getattr(self, "_row_map", {}).get(key)
+        row = self._row_map.get(key)
         if row is None:
             return
         self.app.push_screen(DetailModal(row))

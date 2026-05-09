@@ -98,7 +98,7 @@ class LogViewerApp(App[None]):
 
     # ── filter pipeline ───────────────────────────────────────────────────
 
-    def _apply_filters(self) -> None:
+    def _apply_filters(self, mark_new: bool = False) -> None:
         fs = self._filter_state
         rows = self._all_rows
 
@@ -126,7 +126,7 @@ class LogViewerApp(App[None]):
                 rows = [r for r in rows if needle in r.message.lower()]
 
         self._filtered_rows = rows
-        self._refresh_table()
+        self._refresh_table(mark_new)
         self._refresh_stats()
 
     @staticmethod
@@ -152,11 +152,11 @@ class LogViewerApp(App[None]):
                 continue
         return datetime.min.replace(tzinfo=timezone.utc)
 
-    def _refresh_table(self) -> None:
+    def _refresh_table(self, mark_new: bool = False) -> None:
         try:
             self.query_one("#log-table").load_rows(
                 self._filtered_rows, self._filter_state.search_text,
-                self._filter_state.search_regex,
+                self._filter_state.search_regex, mark_new,
             )
         except Exception:
             pass
@@ -170,6 +170,7 @@ class LogViewerApp(App[None]):
     # ── live follow ───────────────────────────────────────────────────────
 
     def _start_follow(self) -> None:
+        self._reader._stop.clear()
         self._following = True
         self._paused = False
         self._follow_thread = threading.Thread(
@@ -199,7 +200,7 @@ class LogViewerApp(App[None]):
 
     def _append_live_row(self, line: ParsedLine) -> None:
         self._all_rows.append(line)
-        self._apply_filters()
+        self._apply_filters(mark_new=True)
 
     # ── actions ───────────────────────────────────────────────────────────
 
@@ -259,3 +260,7 @@ class LogViewerApp(App[None]):
         if event.input.id == "search-input":
             self._filter_state.search_text = event.value
             self._apply_filters()
+
+    def on_unmount(self) -> None:
+        """Stop the follow thread cleanly when the app closes."""
+        self._reader.stop()
