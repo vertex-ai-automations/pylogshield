@@ -186,3 +186,199 @@ class LogTable(Static):
             self.post_message(self.Resumed())
         elif event.key in ("up", "pageup"):
             self.post_message(self.ScrolledUp())
+
+
+import json as _json
+from textual.screen import ModalScreen
+from textual.widgets import Button, Checkbox, RadioButton, RadioSet
+
+
+class FilterChipBar(Static):
+    """Shows active filters as removable chip labels."""
+
+    DEFAULT_CSS = """
+    FilterChipBar {
+        height: 3;
+        background: $surface-darken-1;
+        layout: horizontal;
+        align: left middle;
+        padding: 0 1;
+        border-top: solid $accent 20%;
+    }
+    FilterChipBar .chip-label { color: $text-muted; margin-right: 1; }
+    FilterChipBar .chip { background: $accent 20%; color: $accent;
+                          margin-right: 1; padding: 0 1; }
+    FilterChipBar .add-hint { color: $text-muted; opacity: 0.6; }
+    """
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._state = None
+
+    def compose(self) -> ComposeResult:
+        yield Label("Filters", classes="chip-label")
+        yield Label("none active", classes="add-hint", id="chip-list")
+
+    def update_chips(self, state) -> None:
+        from pylogshield.tui.app import _ALL_LEVELS
+        self._state = state
+        chips = []
+        if state.levels != _ALL_LEVELS:
+            min_sev = min(
+                {"CRITICAL": 50, "ERROR": 40, "WARNING": 30,
+                 "INFO": 20, "DEBUG": 10}.get(l, 0)
+                for l in state.levels
+            )
+            label = {50: "CRITICAL+", 40: "ERROR+", 30: "WARNING+",
+                     20: "INFO+", 10: "DEBUG+"}.get(min_sev, "custom")
+            chips.append(label)
+        if state.time_range != "all":
+            chips.append(state.time_range)
+        if state.logger_name:
+            chips.append(f"logger:{state.logger_name}")
+
+        chip_lbl = self.query_one("#chip-list", Label)
+        if chips:
+            chip_lbl.update("  ".join(f"[{c}]" for c in chips) + "  + add filter")
+        else:
+            chip_lbl.update("none active  + add filter")
+
+
+class DetailModal(ModalScreen):
+    """Full detail view for a single log row (Enter to open, Esc to close)."""
+
+    BINDINGS = [Binding("escape", "dismiss", "Close")]
+
+    DEFAULT_CSS = """
+    DetailModal { align: center middle; }
+    DetailModal > Vertical {
+        width: 80; height: auto; max-height: 80%;
+        background: $surface; border: solid $accent; padding: 1 2;
+    }
+    DetailModal .detail-title { color: $accent; margin-bottom: 1; }
+    DetailModal .detail-field { margin-bottom: 0; }
+    DetailModal .section-title { color: $text-muted; margin-top: 1; }
+    """
+
+    def __init__(self, row, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._row = row
+
+    def compose(self) -> ComposeResult:
+        from textual.containers import Vertical
+        r = self._row
+        with Vertical():
+            yield Label("Row Detail", classes="detail-title")
+            for lbl, value in [
+                ("Timestamp", r.timestamp),
+                ("Level", r.level),
+                ("Logger", r.logger),
+                ("Location", f"{r.module}:{r.lineno}" if r.module else "N/A"),
+                ("Message", r.message),
+            ]:
+                yield Label(f"[bold]{lbl}:[/bold]  {value}", classes="detail-field")
+            if r.extra:
+                yield Label(
+                    f"[bold]Extra:[/bold]  {_json.dumps(r.extra, default=str)}",
+                    classes="detail-field",
+                )
+            yield Label("", classes="detail-field")
+            yield Label(f"[dim]{r.raw}[/dim]", classes="detail-field")
+            yield Label("Esc to close", classes="section-title")
+
+
+class FilterPanel(ModalScreen):
+    """Modal filter configuration panel."""
+
+    BINDINGS = [
+        Binding("escape", "dismiss_default", "Close"),
+        Binding("r", "reset_filters", "Reset"),
+    ]
+
+    DEFAULT_CSS = """
+    FilterPanel { align: center middle; }
+    FilterPanel > Vertical {
+        width: 60; height: auto;
+        background: $surface; border: solid $accent; padding: 1 2;
+    }
+    FilterPanel .panel-title { color: $accent; margin-bottom: 1; }
+    FilterPanel .section-title { color: $text-muted; margin-top: 1; }
+    FilterPanel Button { margin-top: 1; }
+    """
+
+    def __init__(self, state, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._state = state
+
+    def compose(self) -> ComposeResult:
+        from textual.containers import Vertical
+        with Vertical():
+            yield Label("Filter Panel", classes="panel-title")
+
+            yield Label("Log Levels", classes="section-title")
+            for lvl in ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]:
+                yield Checkbox(
+                    lvl,
+                    value=(lvl in self._state.levels),
+                    id=f"lvl-{lvl.lower()}",
+                )
+
+            yield Label("Time Range", classes="section-title")
+            with RadioSet(id="time-range"):
+                for lbl, value in [
+                    ("All time", "all"),
+                    ("Last 1h", "1h"),
+                    ("Last 6h", "6h"),
+                    ("Last 24h", "24h"),
+                ]:
+                    yield RadioButton(
+                        lbl,
+                        value=(self._state.time_range == value),
+                        id=f"tr-{value}",
+                    )
+
+            yield Label("Logger name (substring)", classes="section-title")
+            yield Input(
+                value=self._state.logger_name,
+                placeholder="e.g. myapp",
+                id="logger-input",
+            )
+
+            yield Button("Apply  [Esc]", variant="primary", id="apply-btn")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "apply-btn":
+            self._collect_and_dismiss()
+
+    def action_dismiss_default(self) -> None:
+        self._collect_and_dismiss()
+
+    def action_reset_filters(self) -> None:
+        from pylogshield.tui.app import FilterState
+        self.dismiss(FilterState())
+
+    def _collect_and_dismiss(self) -> None:
+        from pylogshield.tui.app import FilterState
+        levels = set()
+        for lvl in ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]:
+            cb = self.query_one(f"#lvl-{lvl.lower()}", Checkbox)
+            if cb.value:
+                levels.add(lvl)
+
+        time_range = "all"
+        for lbl, value in [("All time", "all"), ("Last 1h", "1h"),
+                             ("Last 6h", "6h"), ("Last 24h", "24h")]:
+            rb = self.query_one(f"#tr-{value}", RadioButton)
+            if rb.value:
+                time_range = value
+                break
+
+        logger_name = self.query_one("#logger-input", Input).value.strip()
+        new_state = FilterState(
+            levels=levels or {"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"},
+            time_range=time_range,
+            logger_name=logger_name,
+            search_text=self._state.search_text,
+            search_regex=self._state.search_regex,
+        )
+        self.dismiss(new_state)
