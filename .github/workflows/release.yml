@@ -47,15 +47,18 @@
 #        env      = pypi
 #
 #   4. Create docs/requirements.txt:
-#        mkdocs-material==9.5.18
-#        mkdocstrings[python]==0.24.3
+#        zensical
+#        mkdocstrings[python]>=0.24.0
+#        mkdocs-git-authors-plugin
+#        mkdocs-git-revision-date-localized-plugin
+#        mkdocs-autorefs>=1.0.0
 #
 # CUSTOMISE PER PROJECT:
-#   python-version   — match your project's Python version
-#   test-command     — your test runner command
-#   publish-target   — 'both' | 'pypi' | 'testpypi'
-#   src-layout       — true if you use a src/ directory layout
-#   mkdocs-strict    — false to allow doc build warnings
+#   python-version    — match your project's Python version
+#   test-command      — your test runner command
+#   publish-target    — 'both' | 'pypi' | 'testpypi'
+#   src-layout        — true if you use a src/ directory layout
+#   docs-requirements — path to docs pip requirements file
 # ==============================================================================
 
 name: 🚢 Release
@@ -76,38 +79,16 @@ jobs:
   # ============================================================
   docs:
     name: 📚 Deploy Docs
-    runs-on: ubuntu-latest
-    if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/')
+    uses: vertex-ai-automations/shared-workflows/.github/workflows/publish-zensical.yml@main
     permissions:
       contents: read
       pages: write
       id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # full history for git-authors + git-revision-date
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install docs dependencies
-        run: |
-          pip install -e .
-          pip install -r docs/requirements.txt
-
-      - name: Build docs
-        run: zensical build
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: public
-
-      - id: deployment
-        uses: actions/deploy-pages@v4
+    with:
+      python-version: "3.11"
+      docs-requirements: "docs/requirements.txt"
+      src-layout: true
+    secrets: inherit
 
   # ============================================================
   # 📦 Build and Publish Package
