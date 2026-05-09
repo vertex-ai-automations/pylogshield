@@ -40,6 +40,7 @@ issues = "https://github.com/vertex-ai-automations/pylogshield/issues/new"
 pylogshield = "pylogshield.__main__:main"
 
 [project.optional-dependencies]
+tui = ["textual>=0.52.0"]
 fastapi = ["starlette>=0.27.0"]
 
 # version and requirements are dynamically pulled from setup.py. We may enable this in future if setup.py gets deprecated
