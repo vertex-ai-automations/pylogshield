@@ -1,0 +1,5 @@
+zensical
+mkdocstrings[python]>=0.24.0
+mkdocs-git-authors-plugin
+mkdocs-git-revision-date-localized-plugin
+mkdocs-autorefs>=1.0.0

@@ -1,0 +1,249 @@
+[project]
+site_name        = "PyLogShield"
+site_description = "A Python logging library designed for data professionals and developers who need reliable, secure logging with minimal setup."
+site_author      = "Vertex AI Automations"
+site_url         = "https://vertex-ai-automations.github.io/pylogshield"
+site_dir         = "public"
+docs_dir         = "docs"
+
+repo_name = "pylogshield"
+repo_url  = "https://github.com/vertex-ai-automations/pylogshield"
+edit_uri  = "edit/main/docs/"
+
+strict              = false
+use_directory_urls  = true
+exclude_docs        = "*.py"
+
+copyright = "Copyright &copy; 2024-2026 Vertex AI Automations"
+
+extra_css        = ["css/extra.css"]
+extra_javascript = ["js/extra.js"]
+
+# ── Navigation ────────────────────────────────────────────────────────────
+
+nav = [
+  {"Home" = [
+    {"Overview"     = "index.md"},
+    {"Installation" = "installation.md"},
+  ]},
+  {"Getting Started" = [
+    {"Basic Usage" = "usage.md"},
+    {"CLI Usage"   = "cli_usage.md"},
+  ]},
+  {"API Reference" = [
+    {"PyLogShield"       = "references/logger.md"},
+    {"Context Propagation" = "references/context.md"},
+    {"Decorators"        = "references/decorators.md"},
+    {"FastAPI Middleware" = "references/middleware.md"},
+    {"Metrics"           = "references/metrics.md"},
+    {"LogViewer"         = "references/viewer.md"},
+    {"Utilities"         = "references/utils.md"},
+    {"Filters"           = "references/filters.md"},
+    {"Handlers"          = "references/handlers.md"},
+    {"Configuration"     = "references/config.md"},
+  ]},
+]
+
+# ── Theme ─────────────────────────────────────────────────────────────────
+
+[project.theme]
+logo     = "img/pylogshield_192x192.png"
+favicon  = "img/favicon/favicon.ico"
+language = "en"
+custom_dir = "docs/overrides"
+
+font.text = "DM Sans"
+font.code = "JetBrains Mono"
+
+features = [
+  # Navigation
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.instant.progress",
+  "navigation.tracking",
+  "navigation.tabs",
+  "navigation.tabs.sticky",
+  "navigation.sections",
+  "navigation.expand",
+  "navigation.path",
+  "navigation.top",
+  "navigation.footer",
+  # TOC
+  "toc.follow",
+  # Search
+  "search.suggest",
+  "search.highlight",
+  "search.share",
+  # Header
+  "header.autohide",
+  "announce.dismiss",
+  # Content
+  "content.code.copy",
+  "content.code.select",
+  "content.code.annotate",
+  "content.tabs.link",
+  "content.tooltips",
+  "content.action.edit",
+  "content.action.view",
+]
+
+[project.theme.icon]
+logo = "material/shield-lock"
+repo = "fontawesome/brands/github"
+edit = "material/pencil"
+view = "material/eye"
+
+# Dark mode (default)
+[[project.theme.palette]]
+media       = "(prefers-color-scheme: dark)"
+scheme      = "slate"
+primary     = "custom"
+accent      = "custom"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+# Light mode
+[[project.theme.palette]]
+media       = "(prefers-color-scheme: light)"
+scheme      = "default"
+primary     = "custom"
+accent      = "custom"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+# ── Plugins ───────────────────────────────────────────────────────────────
+
+[project.plugins.search]
+separator = '[\s​\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+
+[project.plugins.git-authors]
+
+[project.plugins.git-revision-date-localized]
+enable_creation_date = true
+type = "timeago"
+
+[project.plugins.autorefs]
+resolve_closest = true
+
+[project.plugins.mkdocstrings]
+
+[project.plugins.mkdocstrings.handlers.python]
+paths = ["src"]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_style          = "numpy"
+docstring_section_style  = "spacy"
+filters                  = ["!^_"]
+heading_level            = 2
+inherited_members        = false
+merge_init_into_class    = true
+parameter_headings       = true
+show_root_heading        = true
+show_root_full_path      = false
+show_signature           = true
+show_signature_annotations = true
+show_source              = true
+show_symbol_type_heading = true
+show_symbol_type_toc     = true
+signature_crossrefs      = true
+summary                  = true
+members_order            = "source"
+
+[project.plugins.mkdocstrings.handlers.python.options.docstring_options]
+ignore_init_summary = true
+
+# ── Markdown Extensions ───────────────────────────────────────────────────
+
+[project.markdown_extensions.abbr]
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.attr_list]
+[project.markdown_extensions.def_list]
+[project.markdown_extensions.footnotes]
+[project.markdown_extensions.md_in_html]
+
+[project.markdown_extensions.toc]
+permalink       = true
+permalink_title = "Link to this section"
+toc_depth       = 3
+
+[project.markdown_extensions.pymdownx.arithmatex]
+generic = true
+
+[project.markdown_extensions.pymdownx.betterem]
+smart_enable = "all"
+
+[project.markdown_extensions.pymdownx.caret]
+[project.markdown_extensions.pymdownx.details]
+
+[project.markdown_extensions.pymdownx.emoji]
+emoji_index     = "zensical.extensions.emoji.twemoji"
+emoji_generator = "zensical.extensions.emoji.to_svg"
+
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums    = true
+line_spans         = "__span"
+pygments_lang_class = true
+auto_title         = true
+
+[project.markdown_extensions.pymdownx.inlinehilite]
+[project.markdown_extensions.pymdownx.keys]
+
+[project.markdown_extensions.pymdownx.magiclink]
+normalize_issue_symbols = true
+repo_url_shorthand      = true
+user                    = "vertex-ai-automations"
+repo                    = "pylogshield"
+
+[project.markdown_extensions.pymdownx.mark]
+[project.markdown_extensions.pymdownx.smartsymbols]
+
+[project.markdown_extensions.pymdownx.snippets]
+base_path = ["docs/includes"]
+
+[project.markdown_extensions.pymdownx.superfences]
+custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" }
+]
+
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style    = true
+combine_header_slug = true
+
+[project.markdown_extensions.pymdownx.tasklist]
+custom_checkbox = true
+
+[project.markdown_extensions.pymdownx.tilde]
+
+# ── Extra ─────────────────────────────────────────────────────────────────
+
+[project.extra]
+generator = false
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/vertex-ai-automations/pylogshield"
+name = "PyLogShield on GitHub"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/python"
+link = "https://pypi.org/project/pylogshield/"
+name = "PyLogShield on PyPI"
+
+[project.extra.analytics]
+provider = "google"
+property = "G-XXXXXXXXXX"
+
+[project.extra.analytics.feedback]
+title = "Was this page helpful?"
+
+[[project.extra.analytics.feedback.ratings]]
+icon = "material/emoticon-happy-outline"
+name = "This page was helpful"
+data = 1
+note = "Thanks for your feedback!"
+
+[[project.extra.analytics.feedback.ratings]]
+icon = "material/emoticon-sad-outline"
+name = "This page could be improved"
+data = 0
+note = "Thanks for your feedback! Help us improve by opening an issue."
