@@ -457,3 +457,56 @@ class ExportModal(ModalScreen):
             err = self.query_one("#export-error", Label)
             err.update(f"Export failed: {exc}")
             err.add_class("visible")
+
+
+class HelpModal(ModalScreen):
+    """Two-column keyboard reference overlay."""
+
+    BINDINGS = [
+        Binding("escape", "dismiss", "Close"),
+        Binding("question_mark", "dismiss", "Close"),
+    ]
+
+    DEFAULT_CSS = """
+    HelpModal { align: center middle; }
+    HelpModal > Vertical {
+        width: 72; height: auto;
+        background: $surface; border: solid $accent; padding: 1 2;
+    }
+    HelpModal .help-title { color: $accent; margin-bottom: 1; }
+    HelpModal .col { width: 1fr; }
+    HelpModal .section-title { color: $text-muted; }
+    """
+
+    _BINDINGS_TABLE = [
+        ("Navigation", [
+            ("↑ ↓", "Move between rows"),
+            ("PgUp PgDn", "Page up / down"),
+            ("Home / End", "First / last row (End resumes follow)"),
+            ("Enter", "Expand row detail"),
+        ]),
+        ("Search & Filter", [
+            ("/", "Focus search bar"),
+            ("Ctrl+R", "Toggle regex mode"),
+            ("Esc", "Clear search / close modal"),
+            ("Ctrl+F", "Open filter panel"),
+        ]),
+        ("View & Actions", [
+            ("F", "Toggle live follow"),
+            ("E", "Open export modal"),
+            ("?", "Show / hide this help"),
+            ("Q / Ctrl+C", "Quit"),
+        ]),
+    ]
+
+    def compose(self) -> ComposeResult:
+        from textual.containers import Horizontal, Vertical
+        with Vertical():
+            yield Label("PyLogShield — Keyboard Reference", classes="help-title")
+            with Horizontal():
+                for section, keys in self._BINDINGS_TABLE:
+                    with Vertical(classes="col"):
+                        yield Label(section, classes="section-title")
+                        for key, desc in keys:
+                            yield Label(f"  [{key}]  {desc}")
+            yield Label("Press Esc or ? to close", classes="section-title")
