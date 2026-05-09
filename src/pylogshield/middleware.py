@@ -31,6 +31,8 @@ import time
 import uuid
 from typing import Any, Callable
 
+from pylogshield.context import async_log_context
+
 _REQUEST_ID_PATTERN = re.compile(r"[^A-Za-z0-9\-_]")
 
 
@@ -44,8 +46,6 @@ def _sanitize_request_id(value: str) -> str:
     truncated = value[:128]
     sanitized = _REQUEST_ID_PATTERN.sub("", truncated)
     return sanitized if sanitized else str(uuid.uuid4())
-
-from pylogshield.context import async_log_context
 
 try:
     from starlette.middleware.base import BaseHTTPMiddleware

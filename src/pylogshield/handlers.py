@@ -24,7 +24,8 @@ _ENVELOPE_RESERVED: frozenset = frozenset({
 
 
 def _standard_formatter() -> logging.Formatter:
-    return logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    fmt = "%(asctime)s.%(msecs)03d  %(levelname)-8s  %(name)s  %(module)s:%(lineno)d  %(message)s"
+    return logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
 
 
 class JsonFormatter(logging.Formatter):
@@ -146,12 +147,11 @@ class JsonFormatter(logging.Formatter):
             envelope["stack_info"] = record.stack_info
 
         if self.include_extra:
-            extra: Dict[str, Any] = {}
             for k, v in record.__dict__.items():
                 if k not in self._STANDARD_ATTRS and k not in ctx_keys:
-                    extra[k] = v
-            if extra:
-                envelope["extra"] = extra
+                    if k in _ENVELOPE_RESERVED:
+                        continue
+                    envelope[k] = v
 
         return json.dumps(envelope, indent=self.indent, ensure_ascii=False, default=str)
 
@@ -196,9 +196,15 @@ def create_rich_handler(level: int) -> logging.Handler:
         A RichHandler if Rich is available, otherwise a StreamHandler.
     """
     if _HAS_RICH:
-        h = RichHandler(rich_tracebacks=True, show_time=False, show_path=False)
+        h = RichHandler(
+            rich_tracebacks=True,
+            show_time=True,
+            show_path=False,
+            omit_repeated_times=False,
+            log_time_format="[%H:%M:%S]",
+        )
         h.setLevel(level)
-        h.setFormatter(logging.Formatter("%(message)s"))
+        h.setFormatter(logging.Formatter("%(name)s  %(module)s:%(lineno)d  %(message)s"))
         return h
     return create_console_handler(level)
 

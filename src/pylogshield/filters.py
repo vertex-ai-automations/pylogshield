@@ -49,9 +49,11 @@ class KeywordFilter(logging.Filter):
         )
 
     def filter(self, record: logging.LogRecord) -> bool:
+        if not self.keywords:
+            return True
         msg = record.getMessage()
         haystack = msg.lower() if self.case_insensitive else msg
-        hit = any(k in haystack for k in self.keywords) if self.keywords else False
+        hit = any(k in haystack for k in self.keywords)
         return hit if self.include else (not hit)
 
     def __repr__(self) -> str:

@@ -8,6 +8,8 @@ PyLogShield is a Python logging library extending the standard `logging` module 
 
 ## Build & Development Commands
 
+Requires Python 3.8–3.12.
+
 ```bash
 # Install in development mode
 pip install -e .
@@ -83,6 +85,9 @@ Main export is `get_logger()` - returns a singleton `PyLogShield` instance by na
 - `get_sensitive_pattern()` is **not** re-exported from `pylogshield.__init__`; import it directly from `pylogshield.config`
 - `LogViewer` calls `.expanduser().resolve()` on the path — pass `Path("~/.logs/app.log").expanduser()` or an absolute path
 - The only optional extra is `fastapi` (`pip install "pylogshield[fastapi]"`); there is no `[all]` extra
+- When `enable_json=True` and `enable_context=True`, `JsonFormatter` promotes context fields to the **top level** of the JSON envelope alongside `timestamp` and `level` — they are not nested
+- `log_exceptions(raise_exception=False)` suppresses the caught exception entirely and returns `None`; use this for non-critical operations where a failed call should not propagate
+- `caller_info` in decorators is captured at **decoration time** from `func.__code__`, so logged file/line always points to the function definition, not the call site
 
 ## CLI Usage
 
@@ -113,6 +118,8 @@ pytest tests/test_core.py -v
 pytest tests/test_core.py::TestPyLogShieldMasking::test_mask_dict_password -v
 ```
 
+`asyncio_mode = "auto"` is set in `pyproject.toml` — async test functions run as asyncio tests automatically without `@pytest.mark.asyncio`.
+
 Test modules:
 - `test_core.py` - PyLogShield class, masking, logging operations
 - `test_config.py` - Sensitive field registry
@@ -135,5 +142,6 @@ Key fixtures in `conftest.py`:
 ## Release Process
 
 Releases are automated via GitHub Actions (`.github/workflows/release.yml`):
-- Push to `main` triggers docs deployment
-- Push a semver tag (e.g., `1.2.3`) triggers PyPI publish
+- Push to `main` triggers docs deployment to GitHub Pages
+- Push a bare semver tag (e.g., `git tag 1.2.3 && git push origin 1.2.3`) triggers PyPI publish only (`publish-target: "pypi"`)
+- Secrets required: `PYPI_API_TOKEN` (trusted publishing is disabled in this workflow)

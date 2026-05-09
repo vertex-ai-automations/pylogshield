@@ -97,9 +97,9 @@ class TestJsonFormatter:
         output = formatter.format(record)
         data = json.loads(output)
 
-        assert "extra" in data
-        assert data["extra"]["custom_field"] == "custom_value"
-        assert data["extra"]["request_id"] == "req123"
+        assert data["custom_field"] == "custom_value"
+        assert data["request_id"] == "req123"
+        assert "extra" not in data
 
     def test_format_without_extra_fields(self) -> None:
         """Test formatting with extra fields excluded."""
@@ -109,7 +109,7 @@ class TestJsonFormatter:
         output = formatter.format(record)
         data = json.loads(output)
 
-        assert "extra" not in data
+        assert "custom_field" not in data
 
     def test_timestamp_format(self) -> None:
         """Test timestamp is ISO 8601 format."""

@@ -12,7 +12,7 @@ from rich.text import Text
 
 from pylogshield import __version__
 from pylogshield.utils import LogLevel
-from pylogshield.viewer import LogViewer
+from pylogshield.viewer import LogViewer, _LEVEL_STYLES
 
 # ---------------------------------------------------------------------------
 # App
@@ -25,16 +25,6 @@ app = typer.Typer(
 )
 
 _console = Console()
-
-# Level → Rich style mapping (shared with levels table)
-_LEVEL_STYLES: dict = {
-    "CRITICAL": "bold red",
-    "ERROR":    "red",
-    "WARNING":  "yellow",
-    "INFO":     "green",
-    "DEBUG":    "cyan",
-    "NOTSET":   "dim",
-}
 
 _LEVEL_DESCRIPTIONS: dict = {
     "CRITICAL": "System failure — immediate attention required",

@@ -278,11 +278,10 @@ class PyLogShield(logging.Logger):
         masked: Dict[str, Any] = {}
         for k, v in obj.items():
             k_lc = str(k).lower()
-            if isinstance(v, str):
-                if k_lc in sensitive_keys:
-                    masked[k] = "***"
-                else:
-                    masked[k] = pattern.sub(lambda m: f"{m.group(1)}: ***", v)
+            if k_lc in sensitive_keys:
+                masked[k] = "***"
+            elif isinstance(v, str):
+                masked[k] = pattern.sub(lambda m: f"{m.group(1)}: ***", v)
             elif isinstance(v, dict):
                 masked[k] = self._mask_mapping(v, sensitive_keys, pattern)
             elif isinstance(v, (list, tuple)):
@@ -358,6 +357,10 @@ class PyLogShield(logging.Logger):
                 processed = json.dumps(processed, ensure_ascii=False)
             except Exception:
                 processed = str(processed)
+
+        # Bump stacklevel past _log_with_processing and the public method
+        # (info/debug/etc.) so %(module)s and %(lineno)d point at the caller.
+        kwargs["stacklevel"] = kwargs.get("stacklevel", 1) + 2
 
         if mask:
             # Scrub sensitive data from exception args so they don't leak
@@ -561,6 +564,7 @@ class PyLogShield(logging.Logger):
             log_filter=lf_obj,
             enable_context_scrubber=bool(config.get("enable_context_scrubber", True)),
             enable_context=bool(config.get("enable_context", False)),
+            queue_maxsize=int(config.get("queue_maxsize", 0)),
         )
 
     @staticmethod

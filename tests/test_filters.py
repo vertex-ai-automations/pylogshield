@@ -63,17 +63,15 @@ class TestKeywordFilter:
         assert filter_.filter(self._make_record("ERROR")) is False
 
     def test_empty_keywords(self) -> None:
-        """Test behavior with empty keywords list."""
+        """Empty keyword list is a passthrough regardless of include mode."""
         filter_ = KeywordFilter([], include=True)
         record = self._make_record("Any message")
-        # No keywords to match, so include=True should return False
-        assert filter_.filter(record) is False
+        assert filter_.filter(record) is True
 
     def test_empty_keywords_exclude(self) -> None:
-        """Test exclude mode with empty keywords."""
+        """Empty keyword list is a passthrough regardless of include mode."""
         filter_ = KeywordFilter([], include=False)
         record = self._make_record("Any message")
-        # No keywords to exclude, so should return True
         assert filter_.filter(record) is True
 
     def test_filter_from_iterable(self) -> None:

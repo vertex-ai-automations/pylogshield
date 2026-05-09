@@ -1,7 +1,13 @@
 import functools
 import inspect
+import sys
 from collections.abc import Awaitable, Callable
-from typing import ParamSpec, TypeVar, cast, Any
+from typing import TypeVar, cast, Any
+
+if sys.version_info >= (3, 10):
+    from typing import ParamSpec
+else:
+    from typing_extensions import ParamSpec
 
 from pylogshield.core import PyLogShield
 

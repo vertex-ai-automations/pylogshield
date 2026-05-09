@@ -81,7 +81,7 @@ class RateLimiter:
         with self._lock:
             # Time-based purge of stale entries
             if now - self._last_purge >= self.purge_after:
-                cutoff = now - (self.purge_after * 5)
+                cutoff = now - max(self.purge_after * 5, self.min_interval)
                 to_delete = [kk for kk, t in self._last_log_time.items() if t < cutoff]
                 for kk in to_delete:
                     del self._last_log_time[kk]
