@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 import threading
 import time
@@ -151,3 +152,75 @@ def test_follow_stop_terminates(tmp_path):
     reader.stop()
     t.join(timeout=1.0)
     assert not t.is_alive()
+
+
+# ── Exporter ──────────────────────────────────────────────────────────────
+
+from pylogshield.tui.exporter import Exporter
+
+
+@pytest.fixture
+def sample_rows() -> list:
+    return [
+        ParsedLine("2026-05-09 00:12:04.221", "ERROR", "myapp", "payments", 88,
+                   "Payment failed order_id=ORD-12", "raw1", {}),
+        ParsedLine("2026-05-09 00:15:31.004", "WARNING", "myapp", "payments", 102,
+                   "Payment retry attempt=2", "raw2", {"user_id": 42}),
+        ParsedLine("2026-05-09 00:18:09.441", "INFO", "myapp", "payments", 55,
+                   "Payment ok", "raw3", {}),
+    ]
+
+
+def test_export_csv(tmp_path, sample_rows):
+    path = tmp_path / "out.csv"
+    Exporter(sample_rows, path).to_csv()
+    assert path.exists()
+    with path.open(encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+    assert len(rows) == 3
+    assert rows[0]["level"] == "ERROR"
+    assert rows[0]["module"] == "payments"
+    assert rows[0]["lineno"] == "88"
+
+
+def test_export_json(tmp_path, sample_rows):
+    path = tmp_path / "out.json"
+    Exporter(sample_rows, path).to_json()
+    data = json.loads(path.read_text())
+    assert isinstance(data, list)
+    assert len(data) == 3
+    assert data[1]["level"] == "WARNING"
+    assert data[1]["extra"] == {"user_id": 42}
+
+
+def test_export_text(tmp_path, sample_rows):
+    path = tmp_path / "out.txt"
+    Exporter(sample_rows, path).to_text()
+    content = path.read_text()
+    assert "ERROR" in content
+    assert "Payment failed" in content
+    assert "Payment ok" in content
+
+
+def test_export_html(tmp_path, sample_rows):
+    path = tmp_path / "out.html"
+    Exporter(sample_rows, path).to_html()
+    content = path.read_text()
+    assert "<!DOCTYPE html>" in content
+    assert "Payment failed" in content
+    assert "3 rows" in content
+
+
+def test_export_csv_headers(tmp_path, sample_rows):
+    path = tmp_path / "out.csv"
+    Exporter(sample_rows, path).to_csv()
+    with path.open(encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        headers = reader.fieldnames
+    assert "timestamp" in headers
+    assert "level" in headers
+    assert "logger" in headers
+    assert "module" in headers
+    assert "lineno" in headers
+    assert "message" in headers
