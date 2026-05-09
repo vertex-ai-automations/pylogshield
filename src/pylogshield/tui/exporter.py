@@ -77,11 +77,14 @@ class Exporter:
         now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         ts_range = ""
         if self._rows:
-            ts_range = f"{self._rows[0].timestamp} → {self._rows[-1].timestamp}"
+            ts_range = (
+                f"{html.escape(self._rows[0].timestamp)} → "
+                f"{html.escape(self._rows[-1].timestamp)}"
+            )
 
         stats_html = " &nbsp;·&nbsp; ".join(
-            f'<span style="color:{_LEVEL_COLOURS.get(lvl,"#ccc")}">'
-            f'{cnt} {lvl}</span>'
+            f'<span style="color:{_LEVEL_COLOURS.get(lvl, "#ccc")}">'
+            f'{cnt} {html.escape(lvl)}</span>'
             for lvl, cnt in sorted(counts.items(),
                                    key=lambda x: _LEVEL_ORDER.get(x[0], 99))
         )

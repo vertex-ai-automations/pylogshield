@@ -8,6 +8,9 @@ from pathlib import Path
 
 import pytest
 
+from datetime import timezone
+
+from pylogshield.tui.app import LogViewerApp
 from pylogshield.tui.reader import LogReader, ParsedLine
 
 
@@ -234,3 +237,103 @@ def test_export_html_escapes_content(tmp_path):
     content = path.read_text()
     assert "<script>" not in content
     assert "&lt;script&gt;" in content
+
+
+# ── LogViewerApp._parse_ts ────────────────────────────────────────────────
+
+class TestParseTsMethod:
+    """_parse_ts must handle all timestamp formats the library emits."""
+
+    def _parse(self, ts: str):
+        return LogViewerApp._parse_ts(ts)
+
+    def test_iso8601_with_full_offset(self):
+        """JSON-format timestamps include a full +HH:MM offset — must not be truncated."""
+        dt = self._parse("2026-05-09T05:29:39.884+00:00")
+        assert dt.year == 2026
+        assert dt.month == 5
+        assert dt.day == 9
+        assert dt.hour == 5
+        assert dt.minute == 29
+        assert dt.tzinfo is not None
+
+    def test_iso8601_utc_zero_offset(self):
+        dt = self._parse("2026-01-01T00:00:00.000+00:00")
+        assert dt.year == 2026
+        assert dt.tzinfo is not None
+
+    def test_new_standard_format(self):
+        """New plain-text formatter: YYYY-MM-DD HH:MM:SS.mmm"""
+        dt = self._parse("2026-05-09 00:12:04.221")
+        assert dt.year == 2026
+        assert dt.hour == 0
+        assert dt.tzinfo is not None   # should be UTC-filled
+
+    def test_old_standard_format(self):
+        """Old plain-text formatter uses comma for milliseconds."""
+        dt = self._parse("2026-05-09 00:12:04,221")
+        assert dt.year == 2026
+        assert dt.tzinfo is not None
+
+    def test_unparseable_returns_datetime_min(self):
+        from datetime import datetime
+        dt = self._parse("not a timestamp at all")
+        assert dt == datetime.min.replace(tzinfo=timezone.utc)
+
+    def test_all_formats_comparable_for_filtering(self):
+        """A JSON timestamp and a plain-text timestamp for the same moment must compare equal."""
+        from datetime import datetime, timezone
+        dt_json = self._parse("2026-05-09T05:29:39.884+00:00")
+        dt_plain = self._parse("2026-05-09 05:29:39.884")
+        # Both should resolve to the same UTC moment
+        dt_json_utc = dt_json.astimezone(timezone.utc)
+        dt_plain_utc = dt_plain.astimezone(timezone.utc)
+        assert dt_json_utc.replace(microsecond=0) == dt_plain_utc.replace(microsecond=0)
+
+
+# ── LogReader follow restart ──────────────────────────────────────────────
+
+def test_follow_restarts_after_stop(tmp_path):
+    """LogReader.follow() must work correctly on a second call after stop()."""
+    log = tmp_path / "app.log"
+    log.write_text("")
+
+    received_first = []
+    received_second = []
+
+    reader = LogReader(log)
+
+    # First follow session
+    t1 = threading.Thread(
+        target=reader.follow,
+        args=(received_first.append,),
+        kwargs={"interval": 0.05},
+        daemon=True,
+    )
+    t1.start()
+    time.sleep(0.1)
+    with log.open("a") as f:
+        f.write("2026-05-09 00:00:01.000  INFO      myapp  core:1  first session\n")
+    time.sleep(0.2)
+    reader.stop()
+    t1.join(timeout=1.0)
+    assert not t1.is_alive(), "first thread did not stop"
+
+    # Second follow session — must work after stop/restart
+    t2 = threading.Thread(
+        target=reader.follow,
+        args=(received_second.append,),
+        kwargs={"interval": 0.05},
+        daemon=True,
+    )
+    t2.start()
+    time.sleep(0.1)
+    with log.open("a") as f:
+        f.write("2026-05-09 00:00:02.000  ERROR     myapp  core:2  second session\n")
+    time.sleep(0.2)
+    reader.stop()
+    t2.join(timeout=1.0)
+    assert not t2.is_alive(), "second thread did not stop"
+
+    assert any("first session" in r.message for r in received_first)
+    assert any("second session" in r.message for r in received_second)

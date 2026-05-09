@@ -521,7 +521,8 @@ class PyLogShield(logging.Logger):
             Configuration dictionary with optional keys: level, enable_json,
             use_queue, use_rich, rate_limit_seconds, log_directory, log_file,
             rotate_file, rotate_max_bytes, rotate_backup_count, add_console,
-            enable_metrics, log_filter, enable_context_scrubber, enable_context.
+            enable_metrics, log_filter, enable_context_scrubber, enable_context,
+            queue_maxsize.
 
         Returns
         -------

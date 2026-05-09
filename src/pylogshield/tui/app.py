@@ -138,18 +138,22 @@ class LogViewerApp(App[None]):
 
     @staticmethod
     def _parse_ts(ts: str) -> datetime:
+        # Try full string first so ISO 8601 timezone offsets (+00:00) are not
+        # truncated. Fall back to 23-char slice for plain-text variants that
+        # may have trailing whitespace or extra content.
         for fmt in (
             "%Y-%m-%dT%H:%M:%S.%f%z",
             "%Y-%m-%d %H:%M:%S.%f",
             "%Y-%m-%d %H:%M:%S,%f",
         ):
-            try:
-                dt = datetime.strptime(ts[:26], fmt[:len(fmt)])
-                if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
-                return dt
-            except ValueError:
-                continue
+            for candidate in (ts, ts[:23]):
+                try:
+                    dt = datetime.strptime(candidate, fmt)
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    return dt
+                except ValueError:
+                    continue
         return datetime.min.replace(tzinfo=timezone.utc)
 
     def _refresh_table(self, mark_new: bool = False) -> None:
@@ -186,6 +190,9 @@ class LogViewerApp(App[None]):
 
     def _stop_follow(self) -> None:
         self._reader.stop()
+        if self._follow_thread is not None:
+            self._follow_thread.join(timeout=1.0)
+            self._follow_thread = None
         self._following = False
         self._paused = False
         try:

@@ -19,7 +19,15 @@ except ImportError:
     _HAS_RICH = False
 
 from pylogshield.utils import LogLevel
-from pylogshield.tui.reader import LogReader as _LogReader
+
+# tui/reader.py is stdlib-only; the import is guarded so that any accidental
+# future addition of a Textual import there does not break the core package.
+try:
+    from pylogshield.tui.reader import LogReader as _LogReader
+    _HAS_READER = True
+except ImportError:  # pragma: no cover
+    _HAS_READER = False
+    _LogReader = None  # type: ignore[assignment]
 
 # Per-level Rich styles — used for the Level column in the log table.
 _LEVEL_STYLES: dict = {
@@ -82,7 +90,14 @@ class LogViewer:
         list of str
             The last `limit` lines from the file.
         """
-        return _LogReader(self.log_file)._tail_lines(limit)
+        if _HAS_READER:
+            return _LogReader(self.log_file)._tail_lines(limit)  # type: ignore[union-attr]
+        # Fallback (should never occur in a normal install)
+        if not self.log_file.exists():
+            return []
+        from collections import deque
+        with self.log_file.open("r", encoding="utf-8", errors="replace") as f:
+            return list(deque(f, maxlen=limit))
 
     def _parse_line(self, line: str) -> Tuple[str, str, str]:
         """Parse a log line into timestamp, level, and message components.
@@ -100,10 +115,16 @@ class LogViewer:
             Tuple of (timestamp, levelname, message). Returns "N/A" for
             components that cannot be parsed.
         """
-        p = _LogReader(self.log_file)._parse_line(line)
-        # Convert empty timestamp to "N/A" to match original behavior
-        ts = p.timestamp if p.timestamp else "N/A"
-        return ts, p.level, p.message
+        if _HAS_READER:
+            p = _LogReader(self.log_file)._parse_line(line)  # type: ignore[union-attr]
+            ts = p.timestamp if p.timestamp else "N/A"
+            return ts, p.level, p.message
+        # Fallback (should never occur in a normal install)
+        parts = line.strip().split(" - ", maxsplit=3)
+        if len(parts) == 4:
+            ts, _logger, levelname, message = parts
+            return ts, levelname, message
+        return "N/A", "N/A", line.strip()
 
     def _build_table(
         self,
