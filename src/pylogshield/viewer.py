@@ -19,6 +19,7 @@ except ImportError:
     _HAS_RICH = False
 
 from pylogshield.utils import LogLevel
+from pylogshield.tui.reader import LogReader as _LogReader
 
 # Per-level Rich styles — used for the Level column in the log table.
 _LEVEL_STYLES: dict = {
@@ -81,48 +82,7 @@ class LogViewer:
         list of str
             The last `limit` lines from the file.
         """
-        if not self.log_file.exists():
-            return []
-
-        file_size = self.log_file.stat().st_size
-        # For small files, just read everything
-        if file_size < 1_000_000:  # < 1MB
-            with self.log_file.open("r", encoding="utf-8", errors="replace") as f:
-                return list(deque(f, maxlen=limit))
-
-        # For larger files, read from the end in chunks
-        chunk_size = 8192
-        byte_lines: List[bytes] = []
-        with self.log_file.open("rb") as f:
-            # Start from end
-            f.seek(0, os.SEEK_END)
-            remaining = f.tell()
-            buffer: bytes = b""
-
-            while remaining > 0 and len(byte_lines) < limit:
-                read_size = min(chunk_size, remaining)
-                remaining -= read_size
-                f.seek(remaining)
-                chunk = f.read(read_size)
-                buffer = chunk + buffer
-
-                # Split on any line ending: \n, \r\n, or \r (old Mac).
-                # splitlines() handles all three correctly.
-                split_lines = buffer.splitlines()
-
-                # If we have more than one segment, all but the first are complete
-                if len(split_lines) > 1:
-                    byte_lines = split_lines[1:] + byte_lines
-                    buffer = split_lines[0]
-                # else: entire buffer is one partial line — keep accumulating
-
-            # Don't forget the remaining buffer
-            if buffer:
-                byte_lines = [buffer.strip()] + byte_lines
-
-        # Decode all byte lines at once to avoid splitting multi-byte sequences
-        lines = [bl.decode("utf-8", errors="replace") for bl in byte_lines]
-        return lines[-limit:]
+        return _LogReader(self.log_file)._tail_lines(limit)
 
     def _parse_line(self, line: str) -> Tuple[str, str, str]:
         """Parse a log line into timestamp, level, and message components.
@@ -140,25 +100,10 @@ class LogViewer:
             Tuple of (timestamp, levelname, message). Returns "N/A" for
             components that cannot be parsed.
         """
-        line = line.strip()
-        if not line:
-            return "N/A", "N/A", ""
-
-        try:
-            entry = json.loads(line)
-            return (
-                entry.get("timestamp", "N/A"),
-                entry.get("level", "N/A"),
-                str(entry.get("message", line)),
-            )
-        except json.JSONDecodeError:
-            pass
-
-        parts = line.split(" - ", maxsplit=3)
-        if len(parts) == 4:
-            ts, _logger, levelname, message = parts
-            return ts, levelname, message
-        return "N/A", "N/A", line
+        p = _LogReader(self.log_file)._parse_line(line)
+        # Convert empty timestamp to "N/A" to match original behavior
+        ts = p.timestamp if p.timestamp else "N/A"
+        return ts, p.level, p.message
 
     def _build_table(
         self,
