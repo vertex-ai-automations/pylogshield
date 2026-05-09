@@ -81,3 +81,108 @@ class TopBar(Static):
             lbl.add_class("active")
         else:
             lbl.remove_class("active")
+
+import re as _re
+from textual.message import Message
+from textual.widgets import DataTable
+from rich.text import Text
+
+_LEVEL_STYLES = {
+    "CRITICAL": "bold red",
+    "ERROR": "red",
+    "WARNING": "yellow",
+    "INFO": "green",
+    "DEBUG": "dim",
+}
+
+
+class LogTable(Static):
+    """Scrollable, colour-coded log table backed by a Textual DataTable."""
+
+    class ScrolledUp(Message):
+        """Posted when the user scrolls up while in follow mode."""
+
+    class Resumed(Message):
+        """Posted when the user presses End to go back to the bottom."""
+
+    DEFAULT_CSS = """
+    LogTable { height: 1fr; }
+    LogTable DataTable { height: 1fr; }
+    LogTable #error-panel { height: 1fr; color: $error; content-align: center middle; }
+    """
+
+    def compose(self) -> ComposeResult:
+        yield DataTable(cursor_type="row", zebra_stripes=True, id="data-table")
+
+    def on_mount(self) -> None:
+        tbl = self.query_one(DataTable)
+        tbl.add_columns(
+            "Timestamp", "Level", "Logger", "Location", "Message"
+        )
+
+    def load_rows(
+        self,
+        rows: list,
+        search_text: str = "",
+        use_regex: bool = False,
+        mark_new: bool = False,
+    ) -> None:
+        tbl = self.query_one(DataTable)
+        tbl.clear()
+        self._row_map: dict = {}
+        pat = None
+        if search_text:
+            try:
+                pat = _re.compile(
+                    search_text if use_regex else _re.escape(search_text),
+                    _re.IGNORECASE,
+                )
+            except _re.error:
+                pass
+
+        for i, row in enumerate(rows):
+            style = _LEVEL_STYLES.get(row.level, "")
+            loc = f"{row.module}:{row.lineno}" if row.module else "N/A"
+
+            msg = row.message
+            if mark_new and i == len(rows) - 1:
+                msg = msg + "  [NEW]"
+
+            if pat:
+                msg_text = Text(msg)
+                for m in pat.finditer(msg):
+                    msg_text.stylize("bold yellow", m.start(), m.end())
+                message_cell = msg_text
+            else:
+                message_cell = Text(msg, style=style)
+
+            key = str(id(row))
+            self._row_map[key] = row
+            tbl.add_row(
+                Text(row.timestamp, style="dim"),
+                Text(row.level, style=style),
+                Text(row.logger, style=style),
+                Text(loc, style="dim"),
+                message_cell,
+                key=key,
+            )
+
+    def show_error(self, message: str) -> None:
+        self.query_one(DataTable).display = False
+        self.mount(Label(message, id="error-panel"))
+
+    def on_data_table_row_selected(self, event) -> None:
+        """Expand a detail panel for the selected row (Enter key)."""
+        key = str(event.row_key.value) if event.row_key else None
+        if not key:
+            return
+        row = getattr(self, "_row_map", {}).get(key)
+        if row is None:
+            return
+        self.app.push_screen(DetailModal(row))
+
+    def on_key(self, event) -> None:
+        if event.key == "end":
+            self.post_message(self.Resumed())
+        elif event.key in ("up", "pageup"):
+            self.post_message(self.ScrolledUp())
