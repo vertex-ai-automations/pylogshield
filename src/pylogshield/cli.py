@@ -221,3 +221,48 @@ def show_levels() -> None:
     _console.print()
     _console.print(table)
     _console.print()
+
+
+# ---------------------------------------------------------------------------
+# tui
+# ---------------------------------------------------------------------------
+
+@app.command("tui")
+def tui_viewer(
+    file: Path = typer.Option(
+        ..., "--file", "-f", exists=True, readable=True,
+        help="Path to the log file.",
+    ),
+    level: Optional[str] = typer.Option(
+        None, "--level", "-l",
+        help="Start with this minimum level pre-filtered (e.g. ERROR).",
+    ),
+    follow: bool = typer.Option(
+        False, "--follow", is_flag=True,
+        help="Start in live-follow mode.",
+    ),
+) -> None:
+    """Launch the [bold]interactive TUI[/bold] log viewer.
+
+    Requires: [cyan]pip install 'pylogshield\\[tui\\]'[/cyan]
+
+    [bold]Examples:[/bold]
+
+      pylogshield tui -f app.log
+      pylogshield tui -f app.log -l ERROR --follow
+    """
+    try:
+        from pylogshield.tui.app import LogViewerApp
+    except ImportError:
+        _console.print(
+            "[red]TUI support is not installed.[/red]\n"
+            "Run: [cyan]pip install 'pylogshield\\[tui\\]'[/cyan]"
+        )
+        raise typer.Exit(code=1)
+
+    app_instance = LogViewerApp(
+        log_path=file,
+        initial_level=level,
+        start_following=follow,
+    )
+    app_instance.run()
