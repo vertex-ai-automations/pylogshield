@@ -10,7 +10,7 @@ from typing import Any, Dict
 
 import pytest
 
-from pylogshield import PyLogShield, get_logger
+from pylogshield import PyLogShield, add_log_level, get_logger
 from pylogshield.config import add_sensitive_fields
 from tests.conftest import close_logger
 
@@ -448,6 +448,161 @@ class TestQueueLogging:
             for i in range(20):
                 assert f"thread_{thread_id}_msg_{i}" in log_content
         close_logger(logger)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Custom log levels
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestCustomLogLevel:
+    """Custom log levels registered on PyLogShield via add_log_level."""
+
+    def test_custom_level_appears_in_log_file(self, temp_log_dir: Path) -> None:
+        """Custom level method writes to the log file at the correct level."""
+        class _LS(PyLogShield):
+            pass
+
+        add_log_level("NOTICE", 25, logger_cls=_LS)
+        logger = _LS(
+            name="test_notice_logger",
+            log_directory=temp_log_dir,
+            log_file="notice.log",
+            log_level="DEBUG",
+            add_console=False,
+        )
+        logger.notice("System notice fired")  # type: ignore[attr-defined]
+        close_logger(logger)
+
+        content = (temp_log_dir / "notice.log").read_text()
+        assert "NOTICE" in content
+        assert "System notice fired" in content
+
+    def test_custom_level_respects_min_level(self, temp_log_dir: Path) -> None:
+        """Custom level below logger threshold is suppressed."""
+        class _LS2(PyLogShield):
+            pass
+
+        add_log_level("TRACE2", 5, logger_cls=_LS2)
+        logger = _LS2(
+            name="test_trace2_logger",
+            log_directory=temp_log_dir,
+            log_file="trace2.log",
+            log_level="INFO",      # TRACE2=5 is below INFO=20
+            add_console=False,
+        )
+        logger.trace2("Should be suppressed")  # type: ignore[attr-defined]
+        close_logger(logger)
+
+        content = (temp_log_dir / "trace2.log").read_text()
+        assert "Should be suppressed" not in content
+
+    def test_custom_level_mask_redacts_sensitive_string(self, temp_log_dir: Path) -> None:
+        """mask=True on a custom-level method redacts sensitive patterns."""
+        class _LS3(PyLogShield):
+            pass
+
+        add_log_level("SECLOG", 35, logger_cls=_LS3)
+        logger = _LS3(
+            name="test_seclog_logger",
+            log_directory=temp_log_dir,
+            log_file="seclog.log",
+            log_level="DEBUG",
+            add_console=False,
+        )
+        logger.seclog("api_key: topsecret", mask=True)  # type: ignore[attr-defined]
+        close_logger(logger)
+
+        content = (temp_log_dir / "seclog.log").read_text()
+        assert "topsecret" not in content
+        assert "***" in content
+
+    def test_custom_level_mask_redacts_dict(self, temp_log_dir: Path) -> None:
+        """mask=True on a custom-level method redacts sensitive dict keys."""
+        class _LS4(PyLogShield):
+            pass
+
+        add_log_level("AUDITLOG", 26, logger_cls=_LS4)
+        logger = _LS4(
+            name="test_auditlog_logger",
+            log_directory=temp_log_dir,
+            log_file="auditlog.log",
+            log_level="DEBUG",
+            add_console=False,
+        )
+        logger.auditlog(  # type: ignore[attr-defined]
+            {"user": "alice", "token": "abc123", "action": "login"},
+            mask=True,
+        )
+        close_logger(logger)
+
+        content = (temp_log_dir / "auditlog.log").read_text()
+        assert "abc123" not in content
+        assert "alice" in content
+        assert "login" in content
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Custom sensitive fields
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestCustomSensitiveFields:
+    """Custom fields registered via add_sensitive_fields."""
+
+    def test_custom_string_field_masked_in_dict(self, basic_logger: PyLogShield) -> None:
+        """Custom field with string value is masked."""
+        add_sensitive_fields(["national_id"])
+        data = {"user": "alice", "national_id": "GB123456A"}
+        masked = basic_logger._mask(data)
+        assert masked["national_id"] == "***"
+        assert masked["user"] == "alice"
+
+    def test_custom_field_non_string_value_masked(self, basic_logger: PyLogShield) -> None:
+        """Custom field with integer/float/None value is still masked."""
+        add_sensitive_fields(["account_number", "balance"])
+        data = {
+            "account_number": 12345678,   # int
+            "balance": 9999.99,            # float
+            "name": "Alice",               # not sensitive
+        }
+        masked = basic_logger._mask(data)
+        assert masked["account_number"] == "***"
+        assert masked["balance"] == "***"
+        assert masked["name"] == "Alice"
+
+    def test_custom_field_masked_inline_string(self, basic_logger: PyLogShield) -> None:
+        """Custom field name in 'key: value' pattern is redacted from strings."""
+        add_sensitive_fields(["sort_code"])
+        text = "Payment details sort_code: 12-34-56 amount: 100"
+        masked = basic_logger._mask(text)
+        assert "12-34-56" not in masked
+        assert "***" in masked
+        assert "100" in masked   # non-sensitive portion preserved
+
+    def test_custom_fields_logged_with_mask(self, basic_logger: PyLogShield) -> None:
+        """End-to-end: custom fields are redacted in the written log file."""
+        add_sensitive_fields(["dob", "nhs_number"])
+        basic_logger.info(
+            {"patient": "Bob", "dob": "1990-01-15", "nhs_number": "123 456 7890"},
+            mask=True,
+        )
+        content = basic_logger.log_file_path.read_text()
+        assert "1990-01-15" not in content
+        assert "123 456 7890" not in content
+        assert "Bob" in content
+
+    def test_custom_fields_nested_dict_masked(self, basic_logger: PyLogShield) -> None:
+        """Custom sensitive fields are masked at any nesting depth."""
+        add_sensitive_fields(["secret_pin"])
+        data = {"user": "carol", "payment": {"secret_pin": 9876, "card": "Visa"}}
+        masked = basic_logger._mask(data)
+        assert masked["payment"]["secret_pin"] == "***"
+        assert masked["payment"]["card"] == "Visa"
+
+    def test_non_sensitive_fields_preserved(self, basic_logger: PyLogShield) -> None:
+        """Fields not in the sensitive registry pass through unchanged."""
+        data = {"order_id": "ORD-001", "amount": 49.99, "status": "paid"}
+        masked = basic_logger._mask(data)
+        assert masked == data
 
 
 def test_rotating_file_handler_rotates(tmp_path: Path) -> None:

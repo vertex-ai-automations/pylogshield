@@ -85,22 +85,67 @@ from pylogshield import (
     get_logger,
     add_sensitive_fields,
     remove_sensitive_fields,
-    get_sensitive_fields
+    get_sensitive_fields,
 )
 
-# View current sensitive fields
+# Inspect the current set (28 fields by default)
 print(get_sensitive_fields())
-# {'password', 'token', 'api_key', 'secret', ...}
+# frozenset({'password', 'token', 'api_key', 'secret', 'jwt', ...})
 
-# Add custom sensitive fields
-add_sensitive_fields(["ssn", "credit_card", "bank_account"])
+# Add domain-specific sensitive fields
+add_sensitive_fields(["national_id", "dob", "account_number", "sort_code"])
 
-# Remove fields from sensitive list
+# Remove a field that isn't sensitive in your context
 remove_sensitive_fields(["auth"])
 
-# Or add via logger instance
+# Or add via logger instance (equivalent to the module-level call)
 logger = get_logger("my_app")
-logger.add_sensitive_fields(["custom_secret"])
+logger.add_sensitive_fields(["nhs_number", "tax_id"])
+```
+
+Fields are registered globally for the process lifetime. Any logger that logs with `mask=True` will redact all registered fields.
+
+### What gets masked
+
+**String values** under a sensitive key are replaced with `"***"`:
+
+```python
+logger.info({"user": "alice", "password": "secret"}, mask=True)
+# → {"user": "alice", "password": "***"}
+```
+
+**Non-string values** (int, float, None, bool) are also fully replaced:
+
+```python
+add_sensitive_fields(["account_number", "balance"])
+
+logger.info({
+    "account_number": 12345678,   # int → "***"
+    "balance": 9999.99,           # float → "***"
+    "holder": "Bob",              # not sensitive → unchanged
+}, mask=True)
+# → {"account_number": "***", "balance": "***", "holder": "Bob"}
+```
+
+**Inline strings** matching `key: value` or `key=value` patterns are redacted:
+
+```python
+add_sensitive_fields(["sort_code"])
+
+logger.info("Payment: sort_code: 12-34-56 amount: 100", mask=True)
+# → "Payment: sort_code: *** amount: 100"
+```
+
+**Nested dicts** and **lists of dicts** are recursively scanned:
+
+```python
+add_sensitive_fields(["secret_pin"])
+
+logger.info({
+    "user": "carol",
+    "payment": {"secret_pin": 9876, "card": "Visa"},
+}, mask=True)
+# → {"user": "carol", "payment": {"secret_pin": "***", "card": "Visa"}}
 ```
 
 ---
@@ -168,18 +213,93 @@ exclude_filter = KeywordFilter(
 
 ## Custom Log Levels
 
-Register custom log levels like SECURITY, AUDIT, or TRACE at runtime.
+Register custom log levels at runtime. Each level gets its own method on the logger class, and the method signature is identical to the built-in ones — including `mask=True` support.
+
+### Level value convention
+
+| Built-in level | Value | Good slots for custom levels |
+|---------------|-------|------------------------------|
+| CRITICAL | 50 | — |
+| ERROR | 40 | — |
+| — | 35 | `SECURITY` |
+| WARNING | 30 | — |
+| — | 26 | `AUDIT` |
+| — | 25 | `NOTICE` |
+| INFO | 20 | — |
+| — | 5–15 | `TRACE`, `VERBOSE` |
+| DEBUG | 10 | — |
+
+### Basic usage
 
 ```python
 from pylogshield import get_logger, add_log_level, PyLogShield
 
-# Register a custom SECURITY level (between WARNING and ERROR)
+# Register once at application startup — before any loggers are created
 add_log_level("SECURITY", 35, logger_cls=PyLogShield)
+add_log_level("AUDIT",    26, logger_cls=PyLogShield)
 
-# Now use it
-logger = get_logger("secure_app")
-logger.security("Unauthorized access attempt blocked", mask=True)
+logger = get_logger("secure_app", log_level="DEBUG")
+
+logger.audit("User alice logged in session_id=abc123")
+# 2026-05-09 00:00:01.001  AUDIT     secure_app  ...  User alice logged in ...
+
+logger.security("Privilege escalation blocked user=mallory")
+# 2026-05-09 00:00:01.002  SECURITY  secure_app  ...  Privilege escalation blocked ...
 ```
+
+### With `mask=True`
+
+Custom levels fully support `mask=True` — both for string patterns and dict payloads:
+
+```python
+add_log_level("SECAUDIT", 35, logger_cls=PyLogShield)
+logger = get_logger("app")
+
+# Mask a sensitive string
+logger.secaudit("api_key: topsecret action=login", mask=True)
+# → "api_key: *** action=login"
+
+# Mask a dict payload
+logger.secaudit(
+    {"user": "alice", "token": "abc123", "action": "login"},
+    mask=True,
+)
+# → {"user": "alice", "token": "***", "action": "login"}
+```
+
+### Minimum level filtering
+
+Custom levels obey the logger's minimum level setting exactly like built-in levels:
+
+```python
+add_log_level("TRACE", 5, logger_cls=PyLogShield)
+
+logger = get_logger("app", log_level="INFO")   # INFO = 20
+logger.trace("Detailed trace — suppressed")    # 5 < 20, not emitted
+
+logger.set_log_level("DEBUG")                  # lower to DEBUG = 10
+logger.trace("Still suppressed")              # 5 < 10, still not emitted
+
+logger.set_log_level(1)
+logger.trace("Now emitted")                    # 5 ≥ 1, emitted
+```
+
+### Using with `from_config`
+
+```python
+from pylogshield import PyLogShield, add_log_level
+
+add_log_level("NOTICE", 25, logger_cls=PyLogShield)
+
+logger = PyLogShield.from_config("app", {
+    "level": "DEBUG",
+    "enable_json": True,
+})
+logger.notice("Application config loaded")
+```
+
+!!! warning "Register before creating loggers"
+    Call `add_log_level` before creating any `PyLogShield` instance that needs the custom method. The method is added to the class, so existing instances gain it immediately — but loggers created before registration with a level above the custom value will suppress those messages until `set_log_level` is called.
 
 ---
 
