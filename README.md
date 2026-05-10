@@ -153,7 +153,7 @@ pylogshield tui --file app.log --level ERROR        # start with ERROR+ filter
 pylogshield tui --file app.log --follow             # start in live-follow mode
 ```
 
-![PyLogShield Interactive TUI Viewer](docs/screenshots/tui-demo.gif)
+![PyLogShield Interactive TUI Viewer](https://github.com/vertex-ai-automations/pylogshield/raw/main/docs/screenshots/tui-demo.gif)
 
 | Key | Action |
 |-----|--------|
