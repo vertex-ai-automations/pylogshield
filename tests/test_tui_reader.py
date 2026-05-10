@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import threading
 import time
 from pathlib import Path
@@ -35,7 +36,7 @@ def test_parsed_line_fields():
 # ── LogReader._parse_line ─────────────────────────────────────────────────
 
 def test_parse_new_standard_format():
-    reader = LogReader(Path("/dev/null"))
+    reader = LogReader(Path(os.devnull))
     line = "2026-05-09 00:12:04.221  ERROR     myapp  payments:88  Payment failed"
     result = reader._parse_line(line)
     assert result.timestamp == "2026-05-09 00:12:04.221"
@@ -47,7 +48,7 @@ def test_parse_new_standard_format():
 
 
 def test_parse_json_format():
-    reader = LogReader(Path("/dev/null"))
+    reader = LogReader(Path(os.devnull))
     entry = {
         "timestamp": "2026-05-09T05:29:39.884+00:00",
         "level": "INFO",
@@ -64,7 +65,7 @@ def test_parse_json_format():
 
 
 def test_parse_old_standard_format():
-    reader = LogReader(Path("/dev/null"))
+    reader = LogReader(Path(os.devnull))
     line = "2026-05-09 00:12:04,221 - myapp - ERROR - Payment failed"
     result = reader._parse_line(line)
     assert result.level == "ERROR"
@@ -73,14 +74,14 @@ def test_parse_old_standard_format():
 
 
 def test_parse_unparseable_line():
-    reader = LogReader(Path("/dev/null"))
+    reader = LogReader(Path(os.devnull))
     result = reader._parse_line("garbled log text")
     assert result.level == "N/A"
     assert result.message == "garbled log text"
 
 
 def test_parse_empty_line():
-    reader = LogReader(Path("/dev/null"))
+    reader = LogReader(Path(os.devnull))
     result = reader._parse_line("")
     assert result.message == ""
 
@@ -113,8 +114,8 @@ def test_tail_respects_limit(tmp_path):
     assert results[-1].message == "msg 7"
 
 
-def test_tail_nonexistent_file():
-    reader = LogReader(Path("/nonexistent/app.log"))
+def test_tail_nonexistent_file(tmp_path):
+    reader = LogReader(tmp_path / "does_not_exist.log")
     assert reader.tail(limit=100) == []
 
 

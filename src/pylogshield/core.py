@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sys
 from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
@@ -238,7 +237,13 @@ class PyLogShield(logging.Logger):
             p.mkdir(parents=True, exist_ok=True)
         except OSError as e:
             raise RuntimeError(f"Failed to create log directory {p}: {e}") from e
-        if not os.access(p, os.W_OK):
+        # os.access(W_OK) is unreliable on Windows (ACL-based permissions).
+        # Probe with an actual write instead — works on both platforms.
+        _probe = p / ".pylogshield_write_test"
+        try:
+            _probe.touch()
+            _probe.unlink()
+        except OSError:
             raise RuntimeError(
                 f"Directory {p} is not writable. Please check permissions."
             )
