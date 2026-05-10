@@ -122,6 +122,18 @@ class TestPyLogShieldMasking:
         assert isinstance(masked, tuple)
         assert masked[0]["password"] == "***"
 
+    def test_mask_string_inside_list_partial(self, basic_logger: PyLogShield) -> None:
+        """Strings inside a list use partial substitution, not whole-string replacement."""
+        data = ["user info: alice", "password: secret123", "token: abc"]
+        masked = basic_logger._mask(data)
+        # Non-sensitive string must be preserved exactly
+        assert masked[0] == "user info: alice"
+        # Sensitive strings: only the value is replaced, not the whole string
+        assert "password" in masked[1]
+        assert "secret123" not in masked[1]
+        assert "token" in masked[2]
+        assert "abc" not in masked[2]
+
     def test_mask_string_with_password(self, basic_logger: PyLogShield) -> None:
         """Test masking password pattern in string."""
         text = "Connection with password: secret123 established"

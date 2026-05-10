@@ -254,7 +254,10 @@ class LogViewerApp(App[None]):
     def on_log_table_scrolled_up(self) -> None:
         if self._following and not self._paused:
             self._paused = True
-            self.query_one("#pause-banner").add_class("visible")
+            try:
+                self.query_one("#pause-banner").add_class("visible")
+            except Exception:
+                pass
 
     def on_log_table_resumed(self) -> None:
         self._paused = False

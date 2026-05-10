@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 from queue import Queue
@@ -307,16 +308,10 @@ class PyLogShield(logging.Logger):
             elif isinstance(item, (list, tuple)):
                 out.append(self._mask_sequence(item, sensitive_keys, pattern))
             elif isinstance(item, str):
-                out.append(
-                    "***" if pattern.search(item or "") else item
-                )
+                out.append(pattern.sub(lambda m: f"{m.group(1)}: ***", item))
             else:
                 out.append(item)
         return type(seq)(out) if isinstance(seq, tuple) else out
-
-    def _mask_text(self, text: str) -> str:
-        pattern = get_sensitive_pattern()
-        return pattern.sub(lambda m: f"{m.group(1)}: ***", text)
 
     def _mask(self, payload: Any) -> Any:
         sensitive_keys = frozenset(s.lower() for s in get_sensitive_fields())
@@ -385,7 +380,6 @@ class PyLogShield(logging.Logger):
                     except AttributeError:
                         _exc_val = None
             elif exc_info is True:
-                import sys
                 exc_val = sys.exc_info()[1]
                 if exc_val is not None and hasattr(exc_val, "args"):
                     _exc_val = exc_val

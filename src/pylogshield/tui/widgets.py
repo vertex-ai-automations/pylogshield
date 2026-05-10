@@ -193,6 +193,7 @@ class LogTable(Static):
 
 
 import json as _json
+from rich.markup import escape as _escape
 from textual.screen import ModalScreen
 from textual.widgets import Button, Checkbox, RadioButton, RadioSet
 
@@ -243,7 +244,8 @@ class FilterChipBar(Static):
 
         chip_lbl = self.query_one("#chip-list", Label)
         if chips:
-            chip_lbl.update("  ".join(f"[{c}]" for c in chips) + "  + add filter")
+            # Double-bracket escapes Rich markup — [[x]] renders as literal [x]
+            chip_lbl.update("  ".join(f"[[{c}]]" for c in chips) + "  + add filter")
         else:
             chip_lbl.update("none active  + add filter")
 
@@ -280,14 +282,14 @@ class DetailModal(ModalScreen):
                 ("Location", f"{r.module}:{r.lineno}" if r.module else "N/A"),
                 ("Message", r.message),
             ]:
-                yield Label(f"[bold]{lbl}:[/bold]  {value}", classes="detail-field")
+                yield Label(f"[bold]{lbl}:[/bold]  {_escape(str(value))}", classes="detail-field")
             if r.extra:
                 yield Label(
-                    f"[bold]Extra:[/bold]  {_json.dumps(r.extra, default=str)}",
+                    f"[bold]Extra:[/bold]  {_escape(_json.dumps(r.extra, default=str))}",
                     classes="detail-field",
                 )
             yield Label("", classes="detail-field")
-            yield Label(f"[dim]{r.raw}[/dim]", classes="detail-field")
+            yield Label(f"[dim]{_escape(r.raw)}[/dim]", classes="detail-field")
             yield Label("Esc to close", classes="section-title")
 
 
