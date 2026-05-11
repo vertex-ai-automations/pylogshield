@@ -169,6 +169,27 @@ class TestPyLogShieldMasking:
         assert masked["custom_secret"] == "***"
         assert masked["normal"] == "data"
 
+    def test_mask_idempotent_string(self, basic_logger: PyLogShield) -> None:
+        """Masking an already-masked string must produce the same result."""
+        text = "password: supersecret"
+        once = basic_logger._mask(text)
+        twice = basic_logger._mask(once)
+        assert once == twice, "Masking is not idempotent — double-masking changed the output"
+
+    def test_mask_idempotent_dict(self, basic_logger: PyLogShield) -> None:
+        """Masking an already-masked dict must produce the same result."""
+        data = {"password": "supersecret", "note": "token: abc123"}
+        once = basic_logger._mask(data)
+        twice = basic_logger._mask(once)
+        assert once == twice, "Masking is not idempotent on dicts"
+
+    def test_mask_empty_string_value(self, basic_logger: PyLogShield) -> None:
+        """Regex must match and mask empty quoted values like password: ''."""
+        text = "login failed: password: ''"
+        masked = basic_logger._mask(text)
+        assert "''" not in masked or "***" in masked, \
+            "Empty quoted password value was not masked"
+
 
 class TestPyLogShieldLogging:
     """Tests for actual logging operations."""

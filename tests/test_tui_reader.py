@@ -119,6 +119,33 @@ def test_tail_nonexistent_file(tmp_path):
     assert reader.tail(limit=100) == []
 
 
+def test_tail_large_file_multi_chunk(tmp_path):
+    """_tail_lines must return correct lines when the file exceeds the chunk size."""
+    log = tmp_path / "big.log"
+    # Build a file > 1 MB so _tail_lines uses the backwards binary chunked path.
+    padding = "x" * 90
+    num_lines = 12_000
+    lines = [
+        f"2026-05-09 00:00:00.000  INFO      myapp  core:{i}  msg_{i} {padding}"
+        for i in range(num_lines)
+    ]
+    log.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    assert log.stat().st_size > 1_000_000, "File must exceed 1 MB to exercise chunked read"
+
+    reader = LogReader(log)
+    results = reader.tail(limit=50)
+
+    assert len(results) == 50, f"Expected 50 rows, got {len(results)}"
+    # The last returned row must correspond to the very last line written
+    assert results[-1].message.startswith(f"msg_{num_lines - 1}"), (
+        f"Last row message does not match last written line: {results[-1].message!r}"
+    )
+    # All rows must parse cleanly (no N/A level from garbled lines)
+    assert all(r.level == "INFO" for r in results), (
+        "Some rows have unexpected level — chunked reassembly may be corrupted"
+    )
+
+
 # ── LogReader.follow ──────────────────────────────────────────────────────
 
 def test_follow_delivers_new_lines(tmp_path):

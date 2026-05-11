@@ -503,9 +503,9 @@ Wrap any function with automatic exception logging using `log_exceptions`, or en
 ```python
 from pylogshield import get_logger, log_exceptions, trace
 
-logger = get_logger("my_app")
+logger = get_logger("my_app", log_level="DEBUG")
 
-# Log exceptions only
+# Log exceptions only — re-raises after logging
 @log_exceptions(logger)
 def fetch_data(url: str) -> dict:
     response = requests.get(url)
@@ -516,11 +516,22 @@ def fetch_data(url: str) -> dict:
 @trace(logger)
 async def process_item(item_id: int) -> dict:
     return await db.get(item_id)
+# DEBUG  Calling process_item(args=(42,), kwargs={}) from app.py:15
+# DEBUG  process_item returned: {'id': 42, 'status': 'ok'}
 
-# Suppress exceptions and mask sensitive return values
-@log_exceptions(logger, raise_exception=False, log_returns=True, mask=True)
-def get_token(username: str, password: str) -> str:
-    return auth_service.token(username, password)
+# Mask sensitive arguments and return values
+@log_exceptions(logger, log_calls=True, log_returns=True, mask=True)
+def authenticate(username: str, password: str) -> str:
+    return auth_service.get_token(username, password)
+# DEBUG  Calling authenticate(args=('alice',), kwargs={'password': '***'}) from ...
+# DEBUG  authenticate returned: token: ***
+
+# Suppress exceptions (useful for non-critical side-effects)
+@log_exceptions(logger, raise_exception=False)
+def notify_webhook(url: str, payload: dict) -> bool:
+    requests.post(url, json=payload).raise_for_status()
+    return True
+# Returns None (not raises) if the request fails; exception is still logged at ERROR
 ```
 
 See the [Decorators reference](./references/decorators.md) for all parameters and examples.
@@ -569,9 +580,9 @@ logger.critical("Critical!")      # Bold Red
 
 ---
 
-## Interactive Log Viewer
+## Interactive Log Viewer (CLI / Rich)
 
-View logs in a formatted table.
+The `LogViewer` class renders a colour-coded Rich table. Useful for scripted inspection or integration into admin scripts.
 
 ```python
 from pylogshield import LogViewer
@@ -582,14 +593,77 @@ viewer = LogViewer(Path("~/.logs/my_app.log").expanduser())
 # Display last 100 logs
 viewer.display_logs(limit=100)
 
-# Filter by level
-viewer.display_logs(limit=50, level="ERROR")
+# Filter by level (shows WARNING, ERROR, CRITICAL)
+viewer.display_logs(limit=50, level="WARNING")
 
-# Filter by keyword
-viewer.display_logs(limit=50, keyword="database")
+# Combine level and keyword filters
+viewer.display_logs(limit=50, level="ERROR", keyword="timeout")
 
-# Live follow (like tail -f)
+# Live follow (like tail -f) — press Ctrl+C to stop
 viewer.follow_logs(level="INFO", interval=0.5)
+```
+
+## Interactive TUI Viewer (full-screen)
+
+The TUI viewer is a full-screen terminal application built on [Textual](https://textual.textualize.io/). Install the extra first:
+
+```bash
+pip install "pylogshield[tui]"
+```
+
+### Launch from Python
+
+```python
+from pathlib import Path
+from pylogshield.tui.app import LogViewerApp
+
+# Open log file in the TUI
+LogViewerApp(log_path=Path("~/.logs/myapp.log").expanduser()).run()
+
+# Start with a pre-applied level filter and live-follow enabled
+LogViewerApp(
+    log_path=Path("app.log"),
+    initial_level="ERROR",
+    start_following=True,
+).run()
+```
+
+### Keyboard shortcuts
+
+| Key | Action |
+|-----|--------|
+| `/` | Focus the search bar |
+| `Ctrl+R` | Toggle regex search mode |
+| `Ctrl+F` | Open filter panel (level, time range, logger name) |
+| `F` | Toggle live-follow (tail -f) mode |
+| `E` | Open export modal (CSV / JSON / text / HTML) |
+| `Enter` | Expand detail view for the selected row |
+| `End` | Jump to bottom and resume live-follow |
+| `?` | Show keyboard reference |
+| `Q` / `Ctrl+C` | Quit |
+
+### Programmatic log reading
+
+`LogReader` and `Exporter` work without the TUI app — useful in scripts:
+
+```python
+from pathlib import Path
+from pylogshield.tui.reader import LogReader
+from pylogshield.tui.exporter import Exporter
+
+reader = LogReader(Path("app.log"))
+
+# Tail last 500 lines and filter in Python
+rows = reader.tail(limit=500)
+errors = [r for r in rows if r.level in {"ERROR", "CRITICAL"}]
+
+print(f"Found {len(errors)} errors in last 500 lines")
+for r in errors[:5]:
+    print(f"  [{r.timestamp}] {r.message}")
+
+# Export the errors to CSV and HTML
+Exporter(errors, Path("errors.csv")).to_csv()
+Exporter(errors, Path("errors.html")).to_html()
 ```
 
 ---
@@ -613,6 +687,8 @@ config = {
 
 logger = PyLogShield.from_config("my_app", config)
 ```
+
+---
 
 ---
 
@@ -657,3 +733,8 @@ logger.info(f"Session stats: {metrics['count']} logs in {metrics['elapsed']:.1f}
 
 logger.shutdown()
 ```
+
+---
+
+For more end-to-end examples — FastAPI service, data pipelines, asyncio workers,
+custom log levels, and testing patterns — see the **[Recipes](recipes.md)** page.

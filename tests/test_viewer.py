@@ -155,18 +155,22 @@ class TestLogViewer:
         assert result is True
 
     def test_build_table_level_filter(self, sample_log_file: Path) -> None:
-        """Test building table with level filter."""
+        """Test building table with level filter — only WARNING+ rows pass."""
         viewer = LogViewer(sample_log_file)
         table = viewer._build_table(limit=10, level="WARNING")
-        # Table should have filtered rows (WARNING and ERROR only)
-        assert table.row_count <= 5
+        # The sample file has exactly 1 WARNING and 1 ERROR row; INFO/DEBUG are excluded.
+        assert table.row_count == 2, (
+            f"Expected 2 rows (WARNING + ERROR), got {table.row_count}"
+        )
 
     def test_build_table_keyword_filter(self, sample_log_file: Path) -> None:
-        """Test building table with keyword filter."""
+        """Test building table with keyword filter — only rows containing keyword pass."""
         viewer = LogViewer(sample_log_file)
         table = viewer._build_table(limit=10, keyword="info")
-        # Should only include lines containing "info"
-        assert table.row_count >= 1
+        # The sample file has "First info message" and "Second info message" → 2 rows.
+        assert table.row_count == 2, (
+            f"Expected 2 rows containing 'info', got {table.row_count}"
+        )
 
 
 class TestLogViewerLargeFile:

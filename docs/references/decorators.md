@@ -104,21 +104,33 @@ Identical to the example above — `trace` always enables `log_calls` and `log_r
 ### Masking sensitive arguments
 
 ```python
-@log_exceptions(logger, log_returns=True, mask=True)
-def get_token(username: str, password: str) -> str:
-    ...
+@log_exceptions(logger, log_calls=True, log_returns=True, mask=True)
+def authenticate(username: str, password: str) -> str:
+    """Returns an auth token."""
+    return auth_service.get_token(username, password)
 ```
 
-With `mask=True`, the logger applies PyLogShield's regex-based masking to all
-emitted messages. This is effective on exception messages and return values
-formatted as `key: value` or `key=value` strings.
+With `mask=True`, masking is applied at three points:
 
-!!! note "Known limitation"
-    Raw `kwargs` in the entry log are formatted as Python dict repr
-    (`{'password': 'secret'}`). The masking regex does not match this format —
-    it only matches `password: secret` and `password=secret` patterns.
-    Avoid logging sensitive kwargs directly; use `mask=True` on the exception
-    and return paths where you control the format.
+1. **Entry log** — `_mask()` is called on `args` and `kwargs` *before* they
+   are serialised to a string. A call like `authenticate("alice", password="s3cr3t")`
+   logs `kwargs={'password': '***'}` rather than the raw value.
+2. **Return log** — the return value is masked before logging, so a returned
+   token string matching `key: value` or `key=value` patterns is redacted.
+3. **Exception log** — exception `.args` strings are masked; the traceback
+   text (locals) is *not* redacted.
+
+```
+# example output with log_level="DEBUG", mask=True
+DEBUG  Calling authenticate(args=('alice',), kwargs={'password': '***'}) from ...
+DEBUG  authenticate returned: ***
+```
+
+!!! note "Pattern matching on return values"
+    `mask=True` on return values applies the regex to the *string representation*
+    of the result. Objects that do not contain a recognisable `key: value` or
+    `key=value` pattern will not be redacted. For structured masking, return a
+    dict from the function and let the `_mask_mapping` path handle it.
 
 ### Suppressing exceptions
 

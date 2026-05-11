@@ -166,35 +166,48 @@ class TestRateLimiterThreadSafety:
 def test_overflow_eviction_removes_oldest():
     """When max_entries is exceeded, the oldest entry is evicted."""
     from pylogshield.limiter import RateLimiter
-    limiter = RateLimiter(min_interval=0.0, max_entries=3, purge_after=100.0)
+    limiter = RateLimiter(min_interval=60.0, max_entries=3, purge_after=100.0)
 
     limiter.should_log("app", 20, "msg_a")
     limiter.should_log("app", 20, "msg_b")
     limiter.should_log("app", 20, "msg_c")
     assert limiter.tracked_messages == 3
 
-    # Adding msg_d should evict msg_a (the oldest)
+    # Adding msg_d must evict msg_a (the oldest / least-recently-used entry)
     limiter.should_log("app", 20, "msg_d")
     assert limiter.tracked_messages <= 3
 
-    # msg_a should be allowed again (treated as new — it was evicted)
-    allowed = limiter.should_log("app", 20, "msg_a")
-    assert allowed, "Evicted entry should be allowed as a new message"
+    # Inspect internal state directly to avoid triggering further evictions.
+    # Overflow eviction fires at the START of every should_log call, so using
+    # should_log to probe retained entries would evict them in the process.
+    with limiter._lock:
+        tracked = {k[2] for k in limiter._last_log_time}
+
+    assert "msg_a" not in tracked, "msg_a (oldest) must have been evicted"
+    assert "msg_b" in tracked, "msg_b must still be tracked"
+    assert "msg_c" in tracked, "msg_c must still be tracked"
+    assert "msg_d" in tracked, "msg_d must still be tracked"
 
 
 def test_eviction_respects_lru_order():
     """The least-recently-used message is evicted first, not insertion order."""
     from pylogshield.limiter import RateLimiter
     import time
-    limiter = RateLimiter(min_interval=0.0, max_entries=2, purge_after=100.0)
+    limiter = RateLimiter(min_interval=60.0, max_entries=2, purge_after=100.0)
 
-    limiter.should_log("app", 20, "old_msg")
+    limiter.should_log("app", 20, "old_msg")   # inserted first → LRU
     time.sleep(0.01)
-    limiter.should_log("app", 20, "new_msg")
+    limiter.should_log("app", 20, "new_msg")   # inserted second → MRU
     assert limiter.tracked_messages == 2
 
-    # Adding a third should evict old_msg, not new_msg
+    # Adding a third message must evict old_msg (LRU), not new_msg (MRU)
     limiter.should_log("app", 20, "third_msg")
     assert limiter.tracked_messages <= 2
-    # old_msg should be re-allowed (it was evicted)
-    assert limiter.should_log("app", 20, "old_msg")
+
+    # Inspect directly so we confirm WHICH entry was evicted without
+    # triggering additional overflow evictions via should_log calls.
+    with limiter._lock:
+        tracked = {k[2] for k in limiter._last_log_time}
+
+    assert "old_msg" not in tracked, "old_msg (LRU) must have been evicted"
+    assert "new_msg" in tracked, "new_msg (MRU) must still be tracked"

@@ -112,6 +112,7 @@ These are installed automatically when you install PyLogShield.
 | Extra | Command | Adds |
 |-------|---------|------|
 | `fastapi` | `pip install "pylogshield[fastapi]"` | `PyLogShieldMiddleware` for FastAPI/Starlette |
+| `tui` | `pip install "pylogshield[tui]"` | Full-screen interactive TUI log viewer (`LogViewerApp`) |
 
 ## Development Installation
 

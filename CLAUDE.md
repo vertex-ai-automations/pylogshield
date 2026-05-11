@@ -60,6 +60,12 @@ python -m build
 
 - **`decorators.py`** - `log_exceptions` and `trace` decorators: wrap sync or async functions to log exceptions, call args, and return values. `log_exceptions(logger, log_calls, log_returns, raise_exception, mask)` — sync/async dispatch is automatic. `trace(logger, mask)` is shorthand for `log_exceptions(log_calls=True, log_returns=True)`. Masking applies to message strings via the standard regex but does **not** apply to raw `kwargs` dict repr.
 
+- **`tui/`** - Textual-based TUI log viewer (requires `pip install "pylogshield[tui]"`):
+  - `tui/app.py` - `LogViewerApp`: full interactive TUI app; `_parse_ts()` normalises all timestamp formats (ISO 8601 with offset, `YYYY-MM-DD HH:MM:SS.mmm`, legacy comma-millisecond) to UTC-aware `datetime` for filtering
+  - `tui/reader.py` - `LogReader` / `ParsedLine`: parses plain-text and JSON log lines, supports `tail(limit)` and `follow(callback, interval)` with `stop()` for thread-safe cancellation
+  - `tui/exporter.py` - `Exporter`: exports a list of `ParsedLine` rows to CSV, JSON, plain text, or HTML; HTML output HTML-escapes content to prevent XSS
+  - `tui/widgets.py` - Reusable Textual widgets for the TUI
+
 ### Public API (`__init__.py`)
 
 Main export is `get_logger()` - returns a singleton `PyLogShield` instance by name, integrates with Python's logging manager.
@@ -84,7 +90,7 @@ Main export is `get_logger()` - returns a singleton `PyLogShield` instance by na
 - The package is also runnable as `python -m pylogshield` (entry point: `__main__.py`)
 - `get_sensitive_pattern()` is **not** re-exported from `pylogshield.__init__`; import it directly from `pylogshield.config`
 - `LogViewer` calls `.expanduser().resolve()` on the path — pass `Path("~/.logs/app.log").expanduser()` or an absolute path
-- The only optional extra is `fastapi` (`pip install "pylogshield[fastapi]"`); there is no `[all]` extra
+- Optional extras: `fastapi` (`pip install "pylogshield[fastapi]"`) adds Starlette middleware; `tui` (`pip install "pylogshield[tui]"`) adds the Textual interactive log viewer
 - When `enable_json=True` and `enable_context=True`, `JsonFormatter` promotes context fields to the **top level** of the JSON envelope alongside `timestamp` and `level` — they are not nested
 - `log_exceptions(raise_exception=False)` suppresses the caught exception entirely and returns `None`; use this for non-critical operations where a failed call should not propagate
 - `caller_info` in decorators is captured at **decoration time** from `func.__code__`, so logged file/line always points to the function definition, not the call site
@@ -131,6 +137,7 @@ Test modules:
 - `test_handlers.py` - Handler factories and JsonFormatter
 - `test_utils.py` - LogLevel enum and add_log_level
 - `test_viewer.py` - LogViewer
+- `test_tui_reader.py` - TUI `LogReader`, `ParsedLine`, `Exporter`, `LogViewerApp._parse_ts` (requires `tui` extra)
 
 Key fixtures in `conftest.py`:
 - `reset_sensitive_fields` (autouse) — restores `SENSITIVE_FIELDS` to defaults after every test

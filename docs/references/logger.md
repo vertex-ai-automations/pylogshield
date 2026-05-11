@@ -134,6 +134,61 @@ except Exception:
 !!! warning
     `mask=True` does not redact traceback frame locals. See [Sensitive Data Masking](../usage.md#sensitive-data-masking) for details.
 
+### Replacing an Existing Logger (`force=True`)
+
+```python
+import logging
+
+# Third-party code may already have a standard logger registered
+logging.getLogger("shared_service")
+
+# get_logger raises TypeError by default — use force=True to replace it
+logger = get_logger("shared_service", force=True, enable_json=True)
+```
+
+!!! warning
+    `force=True` emits a `UserWarning` before replacing the existing logger.
+    Any code that already holds a reference to the old logger will stop
+    receiving records once it is replaced.
+
+### Production Setup with Async + Rotation + Context
+
+```python
+from pylogshield import get_logger, add_sensitive_fields
+from pylogshield.context import log_context
+
+# Register domain-specific sensitive fields once at startup
+add_sensitive_fields(["account_number", "sort_code", "national_id"])
+
+logger = get_logger(
+    "payments",
+    log_level="INFO",
+    enable_json=True,           # Structured output for ELK / Datadog
+    rotate_file=True,           # Rotate when file hits 50 MB
+    rotate_max_bytes=50_000_000,
+    rotate_backup_count=10,
+    use_queue=True,             # Non-blocking: log calls return immediately
+    queue_maxsize=100_000,      # Drop new messages if queue fills (not block)
+    rate_limit_seconds=1.0,     # At most 1 identical message per second
+    enable_metrics=True,        # Count logs by level
+    enable_context=True,        # Allow log_context() injection
+)
+
+def process_payment(user_id: int, amount: float, account_number: str) -> None:
+    with log_context(user_id=user_id, operation="payment"):
+        logger.info(
+            {"account_number": account_number, "amount": amount},
+            mask=True,          # account_number → "***"
+        )
+        # ... business logic ...
+        logger.info("Payment authorised")
+
+# At application shutdown — flush remaining queued messages
+logger.shutdown()
+metrics = logger.get_metrics()
+print(f"Logged {metrics['count']} records in {metrics['elapsed']:.1f}s")
+```
+
 ---
 
 ## API Reference

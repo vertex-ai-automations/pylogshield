@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Any
 
 from pylogshield.config import (
@@ -47,9 +48,13 @@ __all__ = [
     "async_log_context",
     # Version
     "__version__",
-    # Middleware (requires pip install "pylogshield[fastapi]")
-    "PyLogShieldMiddleware",
 ]
+
+# Only expose PyLogShieldMiddleware when the fastapi extra is installed so that
+# `from pylogshield import *` and explicit imports do not raise ImportError for
+# users who have not installed the optional dependency.
+if _HAS_MIDDLEWARE:
+    __all__.append("PyLogShieldMiddleware")
 
 
 def get_logger(
@@ -111,6 +116,13 @@ def get_logger(
                     f"Use force=True to replace it."
                 )
 
+            warnings.warn(
+                f"get_logger: replacing existing logger '{name}' "
+                f"(type: {type(existing).__name__}) with a new PyLogShield instance. "
+                f"Any references to the old logger will no longer receive log records.",
+                UserWarning,
+                stacklevel=3,
+            )
             logging.Logger.manager.loggerDict.pop(name, None)
 
         logger = PyLogShield(name=name, **kwargs)

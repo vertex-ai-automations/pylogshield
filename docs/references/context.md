@@ -52,12 +52,39 @@ sequenceDiagram
 Sync context manager. Fields are merged on top of any already-active context, so nesting works as expected. The previous context is always restored on exit—even if an exception is raised.
 
 ```python
-from pylogshield.context import log_context
+from pylogshield.context import log_context, get_log_context
+
+logger = get_logger("api", enable_context=True, enable_json=True)
 
 with log_context(service="payments"):
-    with log_context(transaction_id="tx-7"):
-        logger.info("Charge applied")  # has both service and transaction_id
-    logger.info("Done")               # only service remains
+    logger.info("Payment service started")
+    # → {"service": "payments", "message": "Payment service started", ...}
+
+    with log_context(transaction_id="tx-7", amount=99.99):
+        logger.info("Charge applied")
+        # → {"service": "payments", "transaction_id": "tx-7", "amount": 99.99, ...}
+        print(get_log_context())
+        # {'service': 'payments', 'transaction_id': 'tx-7', 'amount': 99.99}
+
+    logger.info("Transaction complete")
+    # → {"service": "payments", "message": "Transaction complete", ...}
+    # transaction_id is gone; service is restored
+
+logger.info("Done")  # no context fields at all
+```
+
+**Behaviour when an exception is raised inside the block:**
+
+```python
+with log_context(service="billing"):
+    try:
+        with log_context(step="charge"):
+            raise RuntimeError("card declined")
+    except RuntimeError:
+        logger.exception("Charge failed")
+        # → {"service": "billing", "message": "Charge failed", ...}
+        # 'step' is gone even though the inner block raised — the context is
+        # always restored by the finally clause inside log_context.
 ```
 
 ## async_log_context
@@ -95,7 +122,14 @@ with log_context(env="prod"):
 ```
 
 !!! warning "Reserved field names"
-    Context keys that conflict with standard `LogRecord` attributes (e.g., `msg`, `levelname`, `exc_info`, `args`) are silently skipped and a `warnings.warn` is emitted once per conflicting key. Use distinct, application-specific key names.
+    Context keys that conflict with standard `LogRecord` attributes (e.g., `name`, `msg`, `levelname`, `exc_info`, `args`) are silently skipped and a `warnings.warn` is emitted once per conflicting key per `ContextFilter` instance. The warning message suggests a safe rename — for example, using `name` as a context key would warn:
+
+    ```
+    pylogshield: context key 'name' conflicts with a standard LogRecord attribute
+    and will be ignored. Use a different name (e.g. 'ctx_name') to avoid this conflict.
+    ```
+
+    Rename your key (e.g. `service_name`, `logger_name`) to avoid this.
 
 ## get_log_context
 

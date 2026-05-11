@@ -240,16 +240,21 @@ class TestContextScrubber:
 
     def test_context_scrubber_does_not_mutate_extra(self) -> None:
         """ContextScrubber must not modify the original extra dict on the record."""
+        import copy
         scrubber = ContextScrubber()
         record = logging.LogRecord("t", logging.INFO, "", 0, "msg", (), None)
         original_extra = {"AWS_SECRET": "abc", "user": "john"}
         record.__dict__["extra"] = original_extra
+        # Deep-copy before filtering so we can detect in-place mutation even if
+        # the scrubber replaces record.__dict__["extra"] with a new dict.
+        snapshot = copy.deepcopy(original_extra)
 
         scrubber.filter(record)
 
-        # The original dict must be untouched
-        assert "AWS_SECRET" in original_extra, "Scrubber mutated the original extra dict"
-        # The record's extra should have the key removed
+        # The original dict must be untouched (snapshot preserves its pre-filter state)
+        assert snapshot == {"AWS_SECRET": "abc", "user": "john"}, \
+            "Scrubber mutated the original extra dict"
+        # The record's extra should have the forbidden key removed
         assert "AWS_SECRET" not in record.__dict__.get("extra", {}), \
             "Scrubber did not remove the forbidden key from the record"
         assert record.__dict__["extra"].get("user") == "john", \

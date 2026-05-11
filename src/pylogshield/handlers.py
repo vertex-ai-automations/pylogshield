@@ -94,7 +94,10 @@ class JsonFormatter(logging.Formatter):
         super().__init__()
         self.indent = indent
         self.include_extra = include_extra
-        self.hostname = socket.gethostname()
+        try:
+            self.hostname = socket.gethostname()
+        except OSError:
+            self.hostname = "unknown"
 
     def formatTime(
         self, record: logging.LogRecord, datefmt: Optional[str] = None

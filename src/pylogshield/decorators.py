@@ -27,11 +27,13 @@ def _log_calls(
     caller_info: dict,
     mask: bool = False,
 ) -> None:
+    display_args = logger._mask(args) if mask else args
+    display_kwargs = logger._mask(kwargs) if mask else kwargs
     logger.debug(
         f"Calling {caller_info['function_name']}("
-        f"args={args}, kwargs={kwargs}) "
+        f"args={display_args}, kwargs={display_kwargs}) "
         f"from {caller_info['filename']}:{caller_info['line_number']}",
-        mask=mask,
+        mask=False,  # Values already masked above; avoid a second pass
     )
 
 
@@ -41,7 +43,8 @@ def _log_returns(
     result: Any,
     mask: bool = False,
 ) -> None:
-    logger.debug(f"{func_name} returned: {result}", mask=mask)
+    display_result = logger._mask(result) if mask else result
+    logger.debug(f"{func_name} returned: {display_result}", mask=False)
 
 
 P = ParamSpec("P")

@@ -160,7 +160,7 @@ class LogTable(Static):
             else:
                 message_cell = Text(msg, style=style)
 
-            key = str(id(row))
+            key = str(i)
             self._row_map[key] = row
             tbl.add_row(
                 Text(row.timestamp, style="dim"),

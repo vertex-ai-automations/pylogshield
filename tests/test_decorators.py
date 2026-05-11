@@ -125,6 +125,34 @@ class TestMasking:
         content = basic_logger.log_file_path.read_text()
         assert "mysecret" not in content
 
+    def test_mask_applied_to_kwargs_in_log_calls(self, basic_logger: PyLogShield) -> None:
+        """mask=True must redact sensitive kwargs values logged on function entry."""
+        basic_logger.set_log_level("DEBUG")
+
+        @log_exceptions(basic_logger, log_calls=True, mask=True)
+        def login(username: str, password: str) -> bool:
+            return True
+
+        login("admin", password="supersecret")
+
+        content = basic_logger.log_file_path.read_text()
+        assert "supersecret" not in content, \
+            "Sensitive kwarg value should be masked in the log_calls output"
+
+    def test_mask_applied_to_exception_message(self, basic_logger: PyLogShield) -> None:
+        """mask=True must redact sensitive data from the logged exception message."""
+        basic_logger.set_log_level("DEBUG")
+
+        @log_exceptions(basic_logger, raise_exception=False, mask=True)
+        def authenticate(password: str) -> None:
+            raise ValueError(f"password: {password}")
+
+        authenticate("s3cr3t!")
+
+        content = basic_logger.log_file_path.read_text()
+        assert "s3cr3t!" not in content, \
+            "Sensitive data in the exception message should be masked"
+
 
 class TestTrace:
 

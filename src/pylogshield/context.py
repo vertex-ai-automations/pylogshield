@@ -33,13 +33,15 @@ import logging
 import warnings
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar, Token
-from typing import Any, AsyncIterator, Dict, FrozenSet, Iterator
+from typing import Any, AsyncIterator, Dict, FrozenSet, Iterator, Optional
 
 # Single ContextVar holding the current context dict for this thread/task.
 # Using an immutable-ish snapshot model: we replace the entire dict on entry
 # and restore the previous dict on exit, which keeps nesting correct.
-_log_context: ContextVar[Dict[str, Any]] = ContextVar(
-    "pylogshield_context", default={}
+# Default is None (not {}) to avoid sharing a mutable dict across all callers
+# that access the ContextVar without an active context block.
+_log_context: ContextVar[Optional[Dict[str, Any]]] = ContextVar(
+    "pylogshield_context", default=None
 )
 
 
@@ -53,7 +55,7 @@ def get_log_context() -> Dict[str, Any]:
     dict
         The active context key/value pairs.
     """
-    return _log_context.get()
+    return _log_context.get() or {}
 
 
 @contextmanager
@@ -74,7 +76,9 @@ def log_context(**fields: Any) -> Iterator[None]:
     >>> with log_context(request_id="abc", user_id=42):
     ...     logger.info("Processing")   # record carries request_id and user_id
     """
-    token: Token[Dict[str, Any]] = _log_context.set({**_log_context.get(), **fields})
+    token: Token[Optional[Dict[str, Any]]] = _log_context.set(
+        {**(_log_context.get() or {}), **fields}
+    )
     try:
         yield
     finally:
@@ -98,7 +102,9 @@ async def async_log_context(**fields: Any) -> AsyncIterator[None]:
     >>> async with async_log_context(request_id="xyz"):
     ...     logger.info("Async handler")  # record carries request_id
     """
-    token: Token[Dict[str, Any]] = _log_context.set({**_log_context.get(), **fields})
+    token: Token[Optional[Dict[str, Any]]] = _log_context.set(
+        {**(_log_context.get() or {}), **fields}
+    )
     try:
         yield
     finally:
@@ -152,7 +158,9 @@ class ContextFilter(logging.Filter):
                     self._warned_keys.add(key)
                     warnings.warn(
                         f"pylogshield: context key {key!r} conflicts with a "
-                        f"standard LogRecord attribute and will be ignored.",
+                        f"standard LogRecord attribute and will be ignored. "
+                        f"Use a different name (e.g. 'ctx_{key}') to avoid "
+                        f"this conflict.",
                         stacklevel=2,
                     )
             else:

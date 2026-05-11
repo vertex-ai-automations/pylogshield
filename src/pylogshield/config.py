@@ -78,7 +78,7 @@ def get_sensitive_pattern() -> re.Pattern[str]:
             if fields:
                 joined = "|".join(map(re.escape, fields))
                 __pattern_cache = re.compile(
-                    rf"(?i)\b({joined})\b\s*[:=]\s*['\"]?([^'\"\s]+)['\"]?"
+                    rf"(?i)\b({joined})\b\s*[:=]\s*['\"]?([^'\"\s]*)['\"]?"
                 )
             else:
                 # Compile a never-matching pattern to avoid special-casing.

@@ -333,6 +333,16 @@ Explore all features with detailed examples.
 
 <div class="feature-item" markdown>
 
+### :material-chef-hat: Recipes
+
+End-to-end examples: FastAPI service, data pipelines, async workers, testing.
+
+[Recipes & Cookbooks](recipes.md){ .md-button }
+
+</div>
+
+<div class="feature-item" markdown>
+
 ### :material-api: API Reference
 
 Complete API documentation with all parameters and options.

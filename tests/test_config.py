@@ -176,3 +176,32 @@ class TestThreadSafety:
         # All patterns should be valid regex
         for p in patterns:
             assert isinstance(p, re.Pattern)
+
+    def test_concurrent_add_and_invalidate(self) -> None:
+        """Concurrent add + pattern access must not corrupt the cache or raise."""
+        import re as _re
+        errors: list = []
+
+        def add_and_read(prefix: str) -> None:
+            try:
+                for i in range(20):
+                    add_sensitive_fields([f"{prefix}_inv_{i}"])
+                    p = get_sensitive_pattern()
+                    assert isinstance(p, _re.Pattern)
+            except Exception as e:
+                errors.append(e)
+
+        threads = [
+            threading.Thread(target=add_and_read, args=(f"t{i}",))
+            for i in range(6)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert len(errors) == 0, f"Errors in concurrent add+invalidate: {errors}"
+        # Pattern must still be a valid, usable regex after all the churn
+        final_pattern = get_sensitive_pattern()
+        assert isinstance(final_pattern, _re.Pattern)
+        assert final_pattern.search("password: secret") is not None

@@ -7,7 +7,7 @@ import threading
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional
 
 # Matches the current PyLogShield standard formatter:
 # "%(asctime)s.%(msecs)03d  %(levelname)-8s  %(name)s  %(module)s:%(lineno)d  %(message)s"
@@ -42,7 +42,9 @@ class LogReader:
 
     def __init__(self, path: Path) -> None:
         self.path = Path(path).expanduser().resolve()
-        self._stop = threading.Event()
+        self._stop_lock = threading.Lock()
+        self._stop: threading.Event = threading.Event()
+        self._stop.set()  # Idle state: no active follow session
 
     def _parse_line(self, line: str) -> ParsedLine:
         line = line.rstrip("\r\n")
@@ -144,28 +146,36 @@ class LogReader:
         callback: Callable[[ParsedLine], None],
         interval: float = 0.25,
     ) -> None:
-        """Block until stop() is called, invoking callback for each new line."""
-        self._stop.clear()
+        """Block until stop() is called, invoking callback for each new line.
+
+        Creates a fresh stop event for each session so that a concurrent or
+        prior stop() call cannot race with the new session starting.
+        """
+        stop = threading.Event()
+        with self._stop_lock:
+            self._stop = stop  # Atomically publish new session event
+
         if not self.path.exists():
             return
         with self.path.open("r", encoding="utf-8", errors="replace") as f:
             f.seek(0, os.SEEK_END)
             last_size = f.tell()
-            while not self._stop.is_set():
+            while not stop.is_set():
                 try:
                     cur_size = os.fstat(f.fileno()).st_size
                 except OSError:
-                    self._stop.wait(interval)
+                    stop.wait(interval)
                     continue
                 if cur_size < last_size:
                     f.seek(0)
                 line = f.readline()
                 if not line:
                     last_size = cur_size
-                    self._stop.wait(interval)
+                    stop.wait(interval)
                     continue
                 callback(self._parse_line(line))
                 last_size = cur_size
 
     def stop(self) -> None:
-        self._stop.set()
+        with self._stop_lock:
+            self._stop.set()
