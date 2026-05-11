@@ -21,8 +21,8 @@ hide:
 
 <div class="pls-hero__actions">
 
-[Get Started](installation.md){ .md-button .md-button--primary }
-[View on GitHub](https://github.com/vertex-ai-automations/pylogshield){ .md-button }
+<a href="installation.md" class="md-button md-button--primary">Get Started</a>
+<a href="https://github.com/vertex-ai-automations/pylogshield" class="md-button">View on GitHub</a>
 
 </div>
 
@@ -317,7 +317,7 @@ flowchart LR
 
 Learn how to install and configure PyLogShield for your project.
 
-[Installation Guide](installation.md){ .md-button }
+<a href="installation.md" class="md-button">Installation Guide</a>
 
 </div>
 
@@ -327,7 +327,7 @@ Learn how to install and configure PyLogShield for your project.
 
 Explore all features with detailed examples.
 
-[Basic Usage](usage.md){ .md-button }
+<a href="usage.md" class="md-button">Basic Usage</a>
 
 </div>
 
@@ -337,7 +337,7 @@ Explore all features with detailed examples.
 
 End-to-end examples: FastAPI service, data pipelines, async workers, testing.
 
-[Recipes & Cookbooks](recipes.md){ .md-button }
+<a href="recipes.md" class="md-button">Recipes &amp; Cookbooks</a>
 
 </div>
 
@@ -347,7 +347,7 @@ End-to-end examples: FastAPI service, data pipelines, async workers, testing.
 
 Complete API documentation with all parameters and options.
 
-[API Reference](references/logger.md){ .md-button }
+<a href="references/logger.md" class="md-button">API Reference</a>
 
 </div>
 
@@ -359,5 +359,5 @@ Complete API documentation with all parameters and options.
 
 All contributions are welcome! If you have a suggestion that would make this better, please fork the repo and create a pull request.
 
-[:fontawesome-brands-github: View on GitHub](https://github.com/vertex-ai-automations/pylogshield){ .md-button }
-[:fontawesome-solid-bug: Report an Issue](https://github.com/vertex-ai-automations/pylogshield/issues/new){ .md-button }
+<a href="https://github.com/vertex-ai-automations/pylogshield" class="md-button">View on GitHub</a>
+<a href="https://github.com/vertex-ai-automations/pylogshield/issues/new" class="md-button">Report an Issue</a>
