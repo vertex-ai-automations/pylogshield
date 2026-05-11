@@ -11,8 +11,16 @@ import pytest
 
 from datetime import timezone
 
-from pylogshield.tui.app import LogViewerApp
 from pylogshield.tui.reader import LogReader, ParsedLine
+
+# LogViewerApp requires the optional textual dependency.
+# Tests that use it are skipped when the extra is not installed.
+try:
+    from pylogshield.tui.app import LogViewerApp as _LogViewerApp
+    _HAS_TEXTUAL = True
+except ImportError:
+    _LogViewerApp = None  # type: ignore[assignment]
+    _HAS_TEXTUAL = False
 
 
 # ── ParsedLine ────────────────────────────────────────────────────────────
@@ -269,11 +277,12 @@ def test_export_html_escapes_content(tmp_path):
 
 # ── LogViewerApp._parse_ts ────────────────────────────────────────────────
 
+@pytest.mark.skipif(not _HAS_TEXTUAL, reason="pylogshield[tui] not installed")
 class TestParseTsMethod:
     """_parse_ts must handle all timestamp formats the library emits."""
 
     def _parse(self, ts: str):
-        return LogViewerApp._parse_ts(ts)
+        return _LogViewerApp._parse_ts(ts)
 
     def test_iso8601_with_full_offset(self):
         """JSON-format timestamps include a full +HH:MM offset — must not be truncated."""
