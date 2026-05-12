@@ -195,3 +195,6 @@ cover/
 # wandb
 wandb/
 .superpowers/
+
+docs/plans/
+docs/specs/
