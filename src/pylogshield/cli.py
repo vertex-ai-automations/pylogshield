@@ -28,17 +28,18 @@ _console = Console()
 
 _LEVEL_DESCRIPTIONS: dict = {
     "CRITICAL": "System failure — immediate attention required",
-    "ERROR":    "An operation failed",
-    "WARNING":  "Unexpected condition, application still running",
-    "INFO":     "General operational messages",
-    "DEBUG":    "Detailed diagnostic information",
-    "NOTSET":   "No level assigned",
+    "ERROR": "An operation failed",
+    "WARNING": "Unexpected condition, application still running",
+    "INFO": "General operational messages",
+    "DEBUG": "Detailed diagnostic information",
+    "NOTSET": "No level assigned",
 }
 
 
 # ---------------------------------------------------------------------------
 # Version callback
 # ---------------------------------------------------------------------------
+
 
 def _version_callback(value: bool) -> None:
     if value:
@@ -69,22 +70,34 @@ def _main(
 # view
 # ---------------------------------------------------------------------------
 
+
 @app.command("view")
 def view_logs(
     file: Path = typer.Option(
-        ..., "--file", "-f", exists=True, readable=True,
+        ...,
+        "--file",
+        "-f",
+        exists=True,
+        readable=True,
         help="Path to the log file.",
     ),
     limit: int = typer.Option(
-        200, "--limit", "-n", min=1,
+        200,
+        "--limit",
+        "-n",
+        min=1,
         help="Max lines to display from the end of the file.",
     ),
     level: Optional[str] = typer.Option(
-        None, "--level", "-l",
+        None,
+        "--level",
+        "-l",
         help="Minimum log level (e.g. [green]INFO[/green], [yellow]WARNING[/yellow], [red]ERROR[/red]).",
     ),
     keyword: Optional[str] = typer.Option(
-        None, "--keyword", "-k",
+        None,
+        "--keyword",
+        "-k",
         help="Only show lines containing this text (case-insensitive).",
     ),
 ) -> None:
@@ -126,26 +139,41 @@ def view_logs(
 # follow
 # ---------------------------------------------------------------------------
 
+
 @app.command("follow")
 def follow_logs(
     file: Path = typer.Option(
-        ..., "--file", "-f", exists=True, readable=True,
+        ...,
+        "--file",
+        "-f",
+        exists=True,
+        readable=True,
         help="Path to the log file.",
     ),
     level: Optional[str] = typer.Option(
-        None, "--level", "-l",
+        None,
+        "--level",
+        "-l",
         help="Minimum log level (e.g. [green]INFO[/green], [red]ERROR[/red]).",
     ),
     keyword: Optional[str] = typer.Option(
-        None, "--keyword", "-k",
+        None,
+        "--keyword",
+        "-k",
         help="Only show lines containing this text (case-insensitive).",
     ),
     interval: float = typer.Option(
-        0.5, "--interval", "-i", min=0.05,
+        0.5,
+        "--interval",
+        "-i",
+        min=0.05,
         help="Refresh interval in seconds.",
     ),
     max_lines: int = typer.Option(
-        500, "--max-lines", "-m", min=10,
+        500,
+        "--max-lines",
+        "-m",
+        min=10,
         help="Rolling buffer size — number of lines to keep in view.",
     ),
 ) -> None:
@@ -195,6 +223,7 @@ def follow_logs(
 # levels
 # ---------------------------------------------------------------------------
 
+
 @app.command("levels")
 def show_levels() -> None:
     """List all supported log levels and their [bold]numeric values[/bold]."""
@@ -227,18 +256,27 @@ def show_levels() -> None:
 # tui
 # ---------------------------------------------------------------------------
 
+
 @app.command("tui")
 def tui_viewer(
     file: Path = typer.Option(
-        ..., "--file", "-f", exists=True, readable=True,
+        ...,
+        "--file",
+        "-f",
+        exists=True,
+        readable=True,
         help="Path to the log file.",
     ),
     level: Optional[str] = typer.Option(
-        None, "--level", "-l",
+        None,
+        "--level",
+        "-l",
         help="Start with this minimum level pre-filtered (e.g. ERROR).",
     ),
     follow: bool = typer.Option(
-        False, "--follow", is_flag=True,
+        False,
+        "--follow",
+        is_flag=True,
         help="Start in live-follow mode.",
     ),
 ) -> None:

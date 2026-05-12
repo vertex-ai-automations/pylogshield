@@ -4,16 +4,12 @@ from __future__ import annotations
 
 import re
 import threading
-from typing import Set
 
-import pytest
 
 from pylogshield.config import (
-    SENSITIVE_FIELDS,
     add_sensitive_fields,
     get_sensitive_fields,
     get_sensitive_pattern,
-    invalidate_sensitive_pattern_cache,
     remove_sensitive_fields,
 )
 
@@ -140,8 +136,7 @@ class TestThreadSafety:
                 errors.append(e)
 
         threads = [
-            threading.Thread(target=add_fields, args=(f"thread_{i}",))
-            for i in range(5)
+            threading.Thread(target=add_fields, args=(f"thread_{i}",)) for i in range(5)
         ]
         for t in threads:
             t.start()
@@ -163,10 +158,7 @@ class TestThreadSafety:
             except Exception as e:
                 errors.append(e)
 
-        threads = [
-            threading.Thread(target=get_pattern)
-            for _ in range(5)
-        ]
+        threads = [threading.Thread(target=get_pattern) for _ in range(5)]
         for t in threads:
             t.start()
         for t in threads:
@@ -180,6 +172,7 @@ class TestThreadSafety:
     def test_concurrent_add_and_invalidate(self) -> None:
         """Concurrent add + pattern access must not corrupt the cache or raise."""
         import re as _re
+
         errors: list = []
 
         def add_and_read(prefix: str) -> None:
@@ -192,8 +185,7 @@ class TestThreadSafety:
                 errors.append(e)
 
         threads = [
-            threading.Thread(target=add_and_read, args=(f"t{i}",))
-            for i in range(6)
+            threading.Thread(target=add_and_read, args=(f"t{i}",)) for i in range(6)
         ]
         for t in threads:
             t.start()

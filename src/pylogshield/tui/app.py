@@ -20,8 +20,8 @@ class FilterState:
     levels: Set[str] = field(
         default_factory=lambda: {"CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"}
     )
-    time_range: str = "all"       # "1h", "6h", "24h", "all"
-    logger_name: str = ""         # substring match, case-insensitive
+    time_range: str = "all"  # "1h", "6h", "24h", "all"
+    logger_name: str = ""  # substring match, case-insensitive
     search_text: str = ""
     search_regex: bool = False
 
@@ -78,18 +78,19 @@ class LogViewerApp(App[None]):
 
     def compose(self) -> ComposeResult:
         from pylogshield.tui.widgets import FilterChipBar, LogTable, TopBar
+
         yield TopBar(self._path, id="top-bar")
-        yield Static("⏸  Scrolled up — live follow paused. Press End to resume.",
-                     id="pause-banner")
+        yield Static(
+            "⏸  Scrolled up — live follow paused. Press End to resume.",
+            id="pause-banner",
+        )
         yield LogTable(id="log-table")
         yield FilterChipBar(id="filter-chips")
         yield Footer()
 
     def on_mount(self) -> None:
         if not self._path.exists():
-            self.query_one("#log-table").show_error(
-                f"File not found: {self._path}"
-            )
+            self.query_one("#log-table").show_error(f"File not found: {self._path}")
             return
         self._all_rows = self._reader.tail(5000)
         self._apply_filters()
@@ -159,8 +160,10 @@ class LogViewerApp(App[None]):
     def _refresh_table(self, mark_new: bool = False) -> None:
         try:
             self.query_one("#log-table").load_rows(
-                self._filtered_rows, self._filter_state.search_text,
-                self._filter_state.search_regex, mark_new,
+                self._filtered_rows,
+                self._filter_state.search_text,
+                self._filter_state.search_regex,
+                mark_new,
             )
         except Exception:
             pass
@@ -233,6 +236,7 @@ class LogViewerApp(App[None]):
 
     def action_open_filters(self) -> None:
         from pylogshield.tui.widgets import FilterPanel
+
         self.push_screen(FilterPanel(self._filter_state), self._on_filter_result)
 
     def _on_filter_result(self, state: FilterState) -> None:
@@ -245,10 +249,12 @@ class LogViewerApp(App[None]):
 
     def action_open_export(self) -> None:
         from pylogshield.tui.widgets import ExportModal
+
         self.push_screen(ExportModal(self._filtered_rows, self._path))
 
     def action_open_help(self) -> None:
         from pylogshield.tui.widgets import HelpModal
+
         self.push_screen(HelpModal())
 
     def on_log_table_scrolled_up(self) -> None:

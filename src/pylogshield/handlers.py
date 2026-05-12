@@ -17,10 +17,18 @@ except ImportError:
     _HAS_RICH = False
 
 
-_ENVELOPE_RESERVED: frozenset = frozenset({
-    "timestamp", "host", "logger", "level", "message",
-    "exc_info", "stack_info", "extra",
-})
+_ENVELOPE_RESERVED: frozenset = frozenset(
+    {
+        "timestamp",
+        "host",
+        "logger",
+        "level",
+        "message",
+        "exc_info",
+        "stack_info",
+        "extra",
+    }
+)
 
 
 def _standard_formatter() -> logging.Formatter:
@@ -207,7 +215,9 @@ def create_rich_handler(level: int) -> logging.Handler:
             log_time_format="[%H:%M:%S]",
         )
         h.setLevel(level)
-        h.setFormatter(logging.Formatter("%(name)s  %(module)s:%(lineno)d  %(message)s"))
+        h.setFormatter(
+            logging.Formatter("%(name)s  %(module)s:%(lineno)d  %(message)s")
+        )
         return h
     return create_console_handler(level)
 

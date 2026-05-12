@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import time
 from collections import deque
@@ -14,6 +13,7 @@ try:
     from rich.panel import Panel
     from rich.table import Table
     from rich.text import Text
+
     _HAS_RICH = True
 except ImportError:
     _HAS_RICH = False
@@ -24,19 +24,20 @@ from pylogshield.utils import LogLevel
 # future addition of a Textual import there does not break the core package.
 try:
     from pylogshield.tui.reader import LogReader as _LogReader
+
     _HAS_READER = True
 except ImportError:  # pragma: no cover
-    _HAS_READER = False
+    _HAS_READER = False  # type: ignore[misc]
     _LogReader = None  # type: ignore[assignment]
 
 # Per-level Rich styles — used for the Level column in the log table.
 _LEVEL_STYLES: dict = {
     "CRITICAL": "bold red",
-    "ERROR":    "red",
-    "WARNING":  "yellow",
-    "INFO":     "green",
-    "DEBUG":    "cyan",
-    "NOTSET":   "dim",
+    "ERROR": "red",
+    "WARNING": "yellow",
+    "INFO": "green",
+    "DEBUG": "cyan",
+    "NOTSET": "dim",
 }
 
 
@@ -96,6 +97,7 @@ class LogViewer:
         if not self.log_file.exists():
             return []
         from collections import deque
+
         with self.log_file.open("r", encoding="utf-8", errors="replace") as f:
             return list(deque(f, maxlen=limit))
 
@@ -296,7 +298,7 @@ class LogViewer:
                 try:
                     last_size = os.fstat(f.fileno()).st_size
                 except OSError:
-                    last_size = 0
+                    last_size = 0  # type: ignore[arg-type]
 
                 with Live(table, **live_kwargs) as live:
                     while True:

@@ -5,7 +5,6 @@ from __future__ import annotations
 import threading
 import time
 
-import pytest
 
 from pylogshield.limiter import RateLimiter
 
@@ -125,10 +124,7 @@ class TestRateLimiterThreadSafety:
             except Exception as e:
                 errors.append(e)
 
-        threads = [
-            threading.Thread(target=log_messages, args=(i,))
-            for i in range(5)
-        ]
+        threads = [threading.Thread(target=log_messages, args=(i,)) for i in range(5)]
         for t in threads:
             t.start()
         for t in threads:
@@ -151,10 +147,7 @@ class TestRateLimiterThreadSafety:
             except Exception as e:
                 errors.append(e)
 
-        threads = [
-            threading.Thread(target=reset_and_log)
-            for _ in range(5)
-        ]
+        threads = [threading.Thread(target=reset_and_log) for _ in range(5)]
         for t in threads:
             t.start()
         for t in threads:
@@ -166,6 +159,7 @@ class TestRateLimiterThreadSafety:
 def test_overflow_eviction_removes_oldest():
     """When max_entries is exceeded, the oldest entry is evicted."""
     from pylogshield.limiter import RateLimiter
+
     limiter = RateLimiter(min_interval=60.0, max_entries=3, purge_after=100.0)
 
     limiter.should_log("app", 20, "msg_a")
@@ -193,11 +187,12 @@ def test_eviction_respects_lru_order():
     """The least-recently-used message is evicted first, not insertion order."""
     from pylogshield.limiter import RateLimiter
     import time
+
     limiter = RateLimiter(min_interval=60.0, max_entries=2, purge_after=100.0)
 
-    limiter.should_log("app", 20, "old_msg")   # inserted first → LRU
+    limiter.should_log("app", 20, "old_msg")  # inserted first → LRU
     time.sleep(0.01)
-    limiter.should_log("app", 20, "new_msg")   # inserted second → MRU
+    limiter.should_log("app", 20, "new_msg")  # inserted second → MRU
     assert limiter.tracked_messages == 2
 
     # Adding a third message must evict old_msg (LRU), not new_msg (MRU)

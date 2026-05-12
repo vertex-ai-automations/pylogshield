@@ -6,14 +6,12 @@ import io
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
 
 import pytest
 
 from pylogshield import PyLogShield, add_log_level, get_logger
 from pylogshield.config import add_sensitive_fields
 from tests.conftest import close_logger
-
 
 
 class TestPyLogShieldBasic:
@@ -91,13 +89,7 @@ class TestPyLogShieldMasking:
 
     def test_mask_nested_dict(self, basic_logger: PyLogShield) -> None:
         """Test masking in nested dictionaries."""
-        data = {
-            "user": "john",
-            "credentials": {
-                "password": "secret",
-                "token": "xyz"
-            }
-        }
+        data = {"user": "john", "credentials": {"password": "secret", "token": "xyz"}}
         masked = basic_logger._mask(data)
         assert masked["user"] == "john"
         assert masked["credentials"]["password"] == "***"
@@ -107,7 +99,7 @@ class TestPyLogShieldMasking:
         """Test masking in list of dictionaries."""
         data = [
             {"user": "john", "password": "secret1"},
-            {"user": "jane", "password": "secret2"}
+            {"user": "jane", "password": "secret2"},
         ]
         masked = basic_logger._mask(data)
         assert masked[0]["user"] == "john"
@@ -174,7 +166,9 @@ class TestPyLogShieldMasking:
         text = "password: supersecret"
         once = basic_logger._mask(text)
         twice = basic_logger._mask(once)
-        assert once == twice, "Masking is not idempotent — double-masking changed the output"
+        assert once == twice, (
+            "Masking is not idempotent — double-masking changed the output"
+        )
 
     def test_mask_idempotent_dict(self, basic_logger: PyLogShield) -> None:
         """Masking an already-masked dict must produce the same result."""
@@ -187,8 +181,9 @@ class TestPyLogShieldMasking:
         """Regex must match and mask empty quoted values like password: ''."""
         text = "login failed: password: ''"
         masked = basic_logger._mask(text)
-        assert "''" not in masked or "***" in masked, \
+        assert "''" not in masked or "***" in masked, (
             "Empty quoted password value was not masked"
+        )
 
 
 class TestPyLogShieldLogging:
@@ -405,6 +400,7 @@ def test_exception_args_not_mutated(basic_logger):
 def test_exception_args_not_mutated_explicit_tuple(basic_logger):
     """Same guarantee when exc_info is passed as a tuple."""
     import sys
+
     err = ValueError("token: abc-123")
     try:
         raise err
@@ -467,9 +463,7 @@ class TestQueueLogging:
             for i in range(20):
                 logger.info(f"thread_{thread_id}_msg_{i}")
 
-        threads = [
-            threading.Thread(target=write_messages, args=(t,)) for t in range(5)
-        ]
+        threads = [threading.Thread(target=write_messages, args=(t,)) for t in range(5)]
         for t in threads:
             t.start()
         for t in threads:
@@ -487,11 +481,13 @@ class TestQueueLogging:
 # Custom log levels
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestCustomLogLevel:
     """Custom log levels registered on PyLogShield via add_log_level."""
 
     def test_custom_level_appears_in_log_file(self, temp_log_dir: Path) -> None:
         """Custom level method writes to the log file at the correct level."""
+
         class _LS(PyLogShield):
             pass
 
@@ -512,6 +508,7 @@ class TestCustomLogLevel:
 
     def test_custom_level_respects_min_level(self, temp_log_dir: Path) -> None:
         """Custom level below logger threshold is suppressed."""
+
         class _LS2(PyLogShield):
             pass
 
@@ -520,7 +517,7 @@ class TestCustomLogLevel:
             name="test_trace2_logger",
             log_directory=temp_log_dir,
             log_file="trace2.log",
-            log_level="INFO",      # TRACE2=5 is below INFO=20
+            log_level="INFO",  # TRACE2=5 is below INFO=20
             add_console=False,
         )
         logger.trace2("Should be suppressed")  # type: ignore[attr-defined]
@@ -529,8 +526,11 @@ class TestCustomLogLevel:
         content = (temp_log_dir / "trace2.log").read_text()
         assert "Should be suppressed" not in content
 
-    def test_custom_level_mask_redacts_sensitive_string(self, temp_log_dir: Path) -> None:
+    def test_custom_level_mask_redacts_sensitive_string(
+        self, temp_log_dir: Path
+    ) -> None:
         """mask=True on a custom-level method redacts sensitive patterns."""
+
         class _LS3(PyLogShield):
             pass
 
@@ -551,6 +551,7 @@ class TestCustomLogLevel:
 
     def test_custom_level_mask_redacts_dict(self, temp_log_dir: Path) -> None:
         """mask=True on a custom-level method redacts sensitive dict keys."""
+
         class _LS4(PyLogShield):
             pass
 
@@ -578,10 +579,13 @@ class TestCustomLogLevel:
 # Custom sensitive fields
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestCustomSensitiveFields:
     """Custom fields registered via add_sensitive_fields."""
 
-    def test_custom_string_field_masked_in_dict(self, basic_logger: PyLogShield) -> None:
+    def test_custom_string_field_masked_in_dict(
+        self, basic_logger: PyLogShield
+    ) -> None:
         """Custom field with string value is masked."""
         add_sensitive_fields(["national_id"])
         data = {"user": "alice", "national_id": "GB123456A"}
@@ -589,13 +593,15 @@ class TestCustomSensitiveFields:
         assert masked["national_id"] == "***"
         assert masked["user"] == "alice"
 
-    def test_custom_field_non_string_value_masked(self, basic_logger: PyLogShield) -> None:
+    def test_custom_field_non_string_value_masked(
+        self, basic_logger: PyLogShield
+    ) -> None:
         """Custom field with integer/float/None value is still masked."""
         add_sensitive_fields(["account_number", "balance"])
         data = {
-            "account_number": 12345678,   # int
-            "balance": 9999.99,            # float
-            "name": "Alice",               # not sensitive
+            "account_number": 12345678,  # int
+            "balance": 9999.99,  # float
+            "name": "Alice",  # not sensitive
         }
         masked = basic_logger._mask(data)
         assert masked["account_number"] == "***"
@@ -609,7 +615,7 @@ class TestCustomSensitiveFields:
         masked = basic_logger._mask(text)
         assert "12-34-56" not in masked
         assert "***" in masked
-        assert "100" in masked   # non-sensitive portion preserved
+        assert "100" in masked  # non-sensitive portion preserved
 
     def test_custom_fields_logged_with_mask(self, basic_logger: PyLogShield) -> None:
         """End-to-end: custom fields are redacted in the written log file."""

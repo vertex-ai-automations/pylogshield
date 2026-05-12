@@ -27,6 +27,7 @@ Usage::
             logger.info("Charge applied")  # has both fields
         logger.info("Done")               # only service remains
 """
+
 from __future__ import annotations
 
 import logging
@@ -111,13 +112,32 @@ async def async_log_context(**fields: Any) -> AsyncIterator[None]:
         _log_context.reset(token)
 
 
-_LOGRECORD_RESERVED: FrozenSet[str] = frozenset({
-    "name", "msg", "args", "levelname", "levelno", "pathname",
-    "filename", "module", "exc_info", "exc_text", "stack_info",
-    "lineno", "funcName", "created", "msecs", "relativeCreated",
-    "thread", "threadName", "processName", "process", "message",
-    "taskName",
-})
+_LOGRECORD_RESERVED: FrozenSet[str] = frozenset(
+    {
+        "name",
+        "msg",
+        "args",
+        "levelname",
+        "levelno",
+        "pathname",
+        "filename",
+        "module",
+        "exc_info",
+        "exc_text",
+        "stack_info",
+        "lineno",
+        "funcName",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "thread",
+        "threadName",
+        "processName",
+        "process",
+        "message",
+        "taskName",
+    }
+)
 
 
 class ContextFilter(logging.Filter):

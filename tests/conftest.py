@@ -9,7 +9,7 @@ from typing import Generator
 
 import pytest
 
-from pylogshield import PyLogShield, get_logger
+from pylogshield import PyLogShield
 from pylogshield.config import (
     add_sensitive_fields,
     get_sensitive_fields,
@@ -87,8 +87,7 @@ def clean_logger_registry() -> Generator[None, None, None]:
     yield
     # Remove any test loggers from the registry
     to_remove = [
-        name for name in logging.Logger.manager.loggerDict
-        if name.startswith("test_")
+        name for name in logging.Logger.manager.loggerDict if name.startswith("test_")
     ]
     for name in to_remove:
         logging.Logger.manager.loggerDict.pop(name, None)

@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 
-from pylogshield import PyLogShield
 from pylogshield.utils import LogLevel, add_log_level, ensure_log_dir
 
 
@@ -106,6 +105,7 @@ class TestAddLogLevel:
 
     def test_add_custom_level(self, temp_log_dir: Path) -> None:
         """Test adding a custom log level."""
+
         # Create a test logger class to avoid modifying PyLogShield
         class TestLogger(logging.Logger):
             pass
@@ -121,6 +121,7 @@ class TestAddLogLevel:
 
     def test_custom_level_method_works(self, temp_log_dir: Path) -> None:
         """Test that custom level method actually logs."""
+
         class TestLogger2(logging.Logger):
             def _log_with_processing(
                 self, level: int, msg: str, *args, mask: bool = False, **kwargs
@@ -144,6 +145,7 @@ class TestAddLogLevel:
 
     def test_duplicate_level_raises(self) -> None:
         """Test adding duplicate level method raises."""
+
         class TestLogger3(logging.Logger):
             def existing(self) -> None:
                 pass

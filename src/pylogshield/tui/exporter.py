@@ -84,15 +84,16 @@ class Exporter:
 
         stats_html = " &nbsp;·&nbsp; ".join(
             f'<span style="color:{_LEVEL_COLOURS.get(lvl, "#ccc")}">'
-            f'{cnt} {html.escape(lvl)}</span>'
-            for lvl, cnt in sorted(counts.items(),
-                                   key=lambda x: _LEVEL_ORDER.get(x[0], 99))
+            f"{cnt} {html.escape(lvl)}</span>"
+            for lvl, cnt in sorted(
+                counts.items(), key=lambda x: _LEVEL_ORDER.get(x[0], 99)
+            )
         )
 
         rows_html = "\n".join(
             f"<tr>"
-            f'<td>{html.escape(r.timestamp)}</td>'
-            f'<td style="color:{_LEVEL_COLOURS.get(r.level,"#ccc")}">{html.escape(r.level)}</td>'
+            f"<td>{html.escape(r.timestamp)}</td>"
+            f'<td style="color:{_LEVEL_COLOURS.get(r.level, "#ccc")}">{html.escape(r.level)}</td>'
             f"<td>{html.escape(r.logger)}</td>"
             f"<td>{html.escape(r.module)}:{r.lineno}</td>"
             f"<td>{html.escape(r.message)}</td>"

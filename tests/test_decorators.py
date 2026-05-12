@@ -8,7 +8,6 @@ from pylogshield import PyLogShield, log_exceptions, trace
 
 
 class TestSyncExceptions:
-
     def test_sync_exception_reraised(self, basic_logger: PyLogShield) -> None:
         @log_exceptions(basic_logger)
         def risky() -> None:
@@ -44,7 +43,6 @@ class TestSyncExceptions:
 
 
 class TestAsyncExceptions:
-
     async def test_async_exception_reraised(self, basic_logger: PyLogShield) -> None:
         @log_exceptions(basic_logger)
         async def risky() -> None:
@@ -70,7 +68,6 @@ class TestAsyncExceptions:
 
 
 class TestCallAndReturnLogging:
-
     def test_log_calls(self, basic_logger: PyLogShield) -> None:
         basic_logger.set_log_level("DEBUG")
 
@@ -112,7 +109,6 @@ class TestCallAndReturnLogging:
 
 
 class TestMasking:
-
     def test_mask_applied_to_return_value(self, basic_logger: PyLogShield) -> None:
         basic_logger.set_log_level("DEBUG")
 
@@ -125,7 +121,9 @@ class TestMasking:
         content = basic_logger.log_file_path.read_text()
         assert "mysecret" not in content
 
-    def test_mask_applied_to_kwargs_in_log_calls(self, basic_logger: PyLogShield) -> None:
+    def test_mask_applied_to_kwargs_in_log_calls(
+        self, basic_logger: PyLogShield
+    ) -> None:
         """mask=True must redact sensitive kwargs values logged on function entry."""
         basic_logger.set_log_level("DEBUG")
 
@@ -136,8 +134,9 @@ class TestMasking:
         login("admin", password="supersecret")
 
         content = basic_logger.log_file_path.read_text()
-        assert "supersecret" not in content, \
+        assert "supersecret" not in content, (
             "Sensitive kwarg value should be masked in the log_calls output"
+        )
 
     def test_mask_applied_to_exception_message(self, basic_logger: PyLogShield) -> None:
         """mask=True must redact sensitive data from the logged exception message."""
@@ -150,12 +149,12 @@ class TestMasking:
         authenticate("s3cr3t!")
 
         content = basic_logger.log_file_path.read_text()
-        assert "s3cr3t!" not in content, \
+        assert "s3cr3t!" not in content, (
             "Sensitive data in the exception message should be masked"
+        )
 
 
 class TestTrace:
-
     def test_trace_enables_calls_and_returns(self, basic_logger: PyLogShield) -> None:
         basic_logger.set_log_level("DEBUG")
 

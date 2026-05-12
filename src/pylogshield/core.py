@@ -313,7 +313,7 @@ class PyLogShield(logging.Logger):
             elif isinstance(item, (list, tuple)):
                 out.append(self._mask_sequence(item, sensitive_keys, pattern))
             elif isinstance(item, str):
-                out.append(pattern.sub(lambda m: f"{m.group(1)}: ***", item))
+                out.append(pattern.sub(lambda m: f"{m.group(1)}: ***", item))  # type: ignore[arg-type]
             else:
                 out.append(item)
         return type(seq)(out) if isinstance(seq, tuple) else out
@@ -486,7 +486,7 @@ class PyLogShield(logging.Logger):
     # Alias for warning (common alternative spelling)
     warn = warning
 
-    def exception(
+    def exception(  # type: ignore[override]
         self,
         msg: Any,
         *args: Any,

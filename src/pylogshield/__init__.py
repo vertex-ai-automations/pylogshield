@@ -98,7 +98,7 @@ def get_logger(
     >>> same_logger is logger
     True
     """
-    logging._acquireLock()
+    logging._acquireLock()  # type: ignore[attr-defined]
     try:
         existing = logging.Logger.manager.loggerDict.get(name)
         if existing is not None:
@@ -129,5 +129,5 @@ def get_logger(
         logger = PyLogShield(name=name, **kwargs)
         logging.Logger.manager.loggerDict[name] = logger
     finally:
-        logging._releaseLock()
+        logging._releaseLock()  # type: ignore[attr-defined]
     return logger

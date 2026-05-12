@@ -91,7 +91,9 @@ def log_exceptions(
                     result = await func(*args, **kwargs)
 
                     if log_returns:
-                        _log_returns(logger, caller_info["function_name"], result, mask=mask)
+                        _log_returns(
+                            logger, caller_info["function_name"], result, mask=mask
+                        )
 
                     return result
 
@@ -119,7 +121,9 @@ def log_exceptions(
                 result = func(*args, **kwargs)
 
                 if log_returns:
-                    _log_returns(logger, caller_info["function_name"], result, mask=mask)
+                    _log_returns(
+                        logger, caller_info["function_name"], result, mask=mask
+                    )
 
                 return result
 

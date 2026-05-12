@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 
-import pytest
 
 from pylogshield.filters import ContextScrubber, KeywordFilter
 
@@ -241,6 +240,7 @@ class TestContextScrubber:
     def test_context_scrubber_does_not_mutate_extra(self) -> None:
         """ContextScrubber must not modify the original extra dict on the record."""
         import copy
+
         scrubber = ContextScrubber()
         record = logging.LogRecord("t", logging.INFO, "", 0, "msg", (), None)
         original_extra = {"AWS_SECRET": "abc", "user": "john"}
@@ -252,10 +252,13 @@ class TestContextScrubber:
         scrubber.filter(record)
 
         # The original dict must be untouched (snapshot preserves its pre-filter state)
-        assert snapshot == {"AWS_SECRET": "abc", "user": "john"}, \
+        assert snapshot == {"AWS_SECRET": "abc", "user": "john"}, (
             "Scrubber mutated the original extra dict"
+        )
         # The record's extra should have the forbidden key removed
-        assert "AWS_SECRET" not in record.__dict__.get("extra", {}), \
+        assert "AWS_SECRET" not in record.__dict__.get("extra", {}), (
             "Scrubber did not remove the forbidden key from the record"
-        assert record.__dict__["extra"].get("user") == "john", \
+        )
+        assert record.__dict__["extra"].get("user") == "john", (
             "Scrubber removed a non-forbidden key"
+        )

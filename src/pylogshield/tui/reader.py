@@ -7,7 +7,7 @@ import threading
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List
 
 # Matches the current PyLogShield standard formatter:
 # "%(asctime)s.%(msecs)03d  %(levelname)-8s  %(name)s  %(module)s:%(lineno)d  %(message)s"
@@ -20,9 +20,7 @@ _NEW_STD = re.compile(
 )
 # Matches the old PyLogShield standard formatter:
 # "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-_OLD_STD = re.compile(
-    r"^(.+?) - (\S+) - (\w+) - (.+)$"
-)
+_OLD_STD = re.compile(r"^(.+?) - (\S+) - (\w+) - (.+)$")
 
 
 @dataclass
@@ -62,9 +60,20 @@ class LogReader:
             if not isinstance(entry, dict):
                 raise ValueError("not a dict")
             extra = {
-                k: v for k, v in entry.items()
-                if k not in {"timestamp", "level", "logger", "message", "host",
-                             "exc_info", "stack_info", "module", "lineno"}
+                k: v
+                for k, v in entry.items()
+                if k
+                not in {
+                    "timestamp",
+                    "level",
+                    "logger",
+                    "message",
+                    "host",
+                    "exc_info",
+                    "stack_info",
+                    "module",
+                    "lineno",
+                }
             }
             return ParsedLine(
                 timestamp=entry.get("timestamp", "N/A"),
@@ -141,9 +150,7 @@ class LogReader:
 
     def tail(self, limit: int = 5000) -> List[ParsedLine]:
         return [
-            self._parse_line(line)
-            for line in self._tail_lines(limit)
-            if line.strip()
+            self._parse_line(line) for line in self._tail_lines(limit) if line.strip()
         ]
 
     def follow(

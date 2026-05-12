@@ -24,6 +24,7 @@ Usage::
 The middleware also echoes the ``X-Request-ID`` header back in the response so
 callers can correlate their own traces with server-side logs.
 """
+
 from __future__ import annotations
 
 import re
@@ -46,6 +47,7 @@ def _sanitize_request_id(value: str) -> str:
     truncated = value[:128]
     sanitized = _REQUEST_ID_PATTERN.sub("", truncated)
     return sanitized if sanitized else str(uuid.uuid4())
+
 
 try:
     from starlette.middleware.base import BaseHTTPMiddleware

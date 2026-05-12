@@ -4,11 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
-import tempfile
-import warnings
 from pathlib import Path
 
-import pytest
 
 from pylogshield.handlers import (
     JsonFormatter,
@@ -133,6 +130,7 @@ class TestJsonFormatter:
             raise ValueError("Test error")
         except ValueError:
             import sys
+
             record.exc_info = sys.exc_info()
 
         output = formatter.format(record)
@@ -254,9 +252,7 @@ class TestCreateRotatingFileHandler:
     def test_json_format(self, temp_log_dir: Path) -> None:
         """Test JSON formatter option."""
         log_path = temp_log_dir / "rotating_json.log"
-        handler = create_rotating_file_handler(
-            log_path, logging.INFO, json_format=True
-        )
+        handler = create_rotating_file_handler(log_path, logging.INFO, json_format=True)
 
         assert isinstance(handler.formatter, JsonFormatter)
         handler.close()

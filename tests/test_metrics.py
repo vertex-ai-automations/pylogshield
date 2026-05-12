@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import time
 
-import pytest
 
 from pylogshield.metrics import LogMetricsHandler
 
@@ -98,7 +97,9 @@ class TestLogMetricsHandler:
         time.sleep(0.1)
 
         assert handler.total_count() == 2
-        assert handler.elapsed_seconds() >= 0.08  # generous for Windows timer granularity
+        assert (
+            handler.elapsed_seconds() >= 0.08
+        )  # generous for Windows timer granularity
 
         handler.reset()
 
