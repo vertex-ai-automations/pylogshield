@@ -31,7 +31,7 @@ def json_log_file(tmp_path: Path) -> Path:
         {"timestamp": "2026-05-12T10:00:00.001+00:00", "level": "INFO", "logger": "app", "message": "started"},
         {"timestamp": "2026-05-12T10:00:01.002+00:00", "level": "ERROR", "logger": "app", "message": "crashed"},
     ]
-    f.write_text("\n".join(json.dumps(l) for l in lines) + "\n")
+    f.write_text("\n".join(json.dumps(entry) for entry in lines) + "\n")
     return f
 
 
