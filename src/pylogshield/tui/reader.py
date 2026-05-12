@@ -41,7 +41,12 @@ class LogReader:
     """Reads, parses, and optionally follows a log file."""
 
     def __init__(self, path: Path) -> None:
-        self.path = Path(path).expanduser().resolve()
+        p = Path(path).expanduser()
+        try:
+            # resolve() fails on Windows Python 3.9 for device paths like 'nul'
+            self.path = p.resolve()
+        except OSError:
+            self.path = p
         self._stop_lock = threading.Lock()
         self._stop: threading.Event = threading.Event()
         self._stop.set()  # Idle state: no active follow session
