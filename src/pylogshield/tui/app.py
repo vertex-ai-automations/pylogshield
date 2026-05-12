@@ -177,7 +177,6 @@ class LogViewerApp(App[None]):
     # ── live follow ───────────────────────────────────────────────────────
 
     def _start_follow(self) -> None:
-        self._reader._stop.clear()
         self._following = True
         self._paused = False
         self._follow_thread = threading.Thread(

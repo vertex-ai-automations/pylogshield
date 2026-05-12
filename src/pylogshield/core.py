@@ -5,7 +5,7 @@ import logging
 import sys
 from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
-from queue import Queue
+from queue import Full, Queue
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Union
 
 from pylogshield.config import add_sensitive_fields as cfg_add_sensitive_fields
@@ -21,6 +21,16 @@ from pylogshield.handlers import (
 from pylogshield.limiter import RateLimiter
 from pylogshield.metrics import LogMetricsHandler
 from pylogshield.utils import LogLevel, ensure_log_dir
+
+
+class _SilentQueueHandler(QueueHandler):
+    """QueueHandler that drops records silently when the queue is full."""
+
+    def enqueue(self, record: logging.LogRecord) -> None:
+        try:
+            self.queue.put_nowait(record)
+        except Full:
+            pass
 
 
 class PyLogShield(logging.Logger):
@@ -196,7 +206,7 @@ class PyLogShield(logging.Logger):
 
         if use_queue and handlers:
             q: Queue = Queue(queue_maxsize)
-            self.addHandler(QueueHandler(q))
+            self.addHandler(_SilentQueueHandler(q))
             self._queue_listener = QueueListener(
                 q, *handlers, respect_handler_level=True
             )
@@ -287,7 +297,7 @@ class PyLogShield(logging.Logger):
             if k_lc in sensitive_keys:
                 masked[k] = "***"
             elif isinstance(v, str):
-                masked[k] = pattern.sub(lambda m: f"{m.group(1)}: ***", v)
+                masked[k] = pattern.sub(lambda m: f"{m.group(1)}{m.group(2)}***", v)
             elif isinstance(v, dict):
                 masked[k] = self._mask_mapping(v, sensitive_keys, pattern)
             elif isinstance(v, (list, tuple)):
@@ -313,7 +323,7 @@ class PyLogShield(logging.Logger):
             elif isinstance(item, (list, tuple)):
                 out.append(self._mask_sequence(item, sensitive_keys, pattern))
             elif isinstance(item, str):
-                out.append(pattern.sub(lambda m: f"{m.group(1)}: ***", item))  # type: ignore[arg-type]
+                out.append(pattern.sub(lambda m: f"{m.group(1)}{m.group(2)}***", item))  # type: ignore[arg-type]
             else:
                 out.append(item)
         return type(seq)(out) if isinstance(seq, tuple) else out
@@ -322,7 +332,7 @@ class PyLogShield(logging.Logger):
         sensitive_keys = frozenset(s.lower() for s in get_sensitive_fields())
         pattern = get_sensitive_pattern()
         if isinstance(payload, str):
-            return pattern.sub(lambda m: f"{m.group(1)}: ***", payload)
+            return pattern.sub(lambda m: f"{m.group(1)}{m.group(2)}***", payload)
         if isinstance(payload, dict):
             return self._mask_mapping(payload, sensitive_keys, pattern)
         if isinstance(payload, (list, tuple)):
@@ -344,19 +354,25 @@ class PyLogShield(logging.Logger):
     def _mask_string(self, text: str) -> str:
         """Apply the sensitive pattern to a single string and return the masked result."""
         pattern = get_sensitive_pattern()
-        return pattern.sub(lambda m: f"{m.group(1)}: ***", text)
+        return pattern.sub(lambda m: f"{m.group(1)}{m.group(2)}***", text)
 
     def _log_with_processing(
         self, level: int, msg: Any, *args: Any, mask: bool = False, **kwargs: Any
     ) -> None:
-        if not self._allowed(level, msg):
-            return
+        # Mask before rate-limit check so the limiter never stores raw sensitive data.
         processed = self._process_message(msg, mask=mask)
+        if not self._allowed(level, processed):
+            return
         if not isinstance(processed, (str, bytes)):
             try:
                 processed = json.dumps(processed, ensure_ascii=False)
             except Exception:
                 processed = str(processed)
+
+        # Also mask positional %-style format args so values like
+        # logger.info("token=%s", token_value, mask=True) are fully redacted.
+        if mask and args:
+            args = tuple(self._mask(a) for a in args)
 
         # Bump stacklevel past _log_with_processing and the public method
         # (info/debug/etc.) so %(module)s and %(lineno)d point at the caller.
@@ -542,7 +558,7 @@ class PyLogShield(logging.Logger):
                 include=bool(lf.get("include", True)),
                 case_insensitive=bool(lf.get("case_insensitive", True)),
             )
-        elif isinstance(lf, (list, tuple, set)):
+        elif isinstance(lf, (list, tuple, set, frozenset)):
             lf_obj = KeywordFilter(list(lf))
         elif isinstance(lf, logging.Filter):
             lf_obj = lf

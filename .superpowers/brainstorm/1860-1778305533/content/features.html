@@ -1,0 +1,70 @@
+<h2>Which features are must-haves?</h2>
+<p class="subtitle">Select everything you want in the TUI. We'll scope the design around your priorities.</p>
+
+<div class="options" data-multiselect>
+
+  <div class="option" data-choice="search" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>Live Search Bar</h3>
+      <p>Type to filter — results update as you type. Supports plain text and regex. Highlights matches inline.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="filters" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>Filter Panel</h3>
+      <p>Sidebar with toggles for log level (DEBUG/INFO/WARNING/ERROR/CRITICAL), time range (last 1h, 24h, custom), and logger name. Multiple filters stack.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="stats" onclick="toggleSelect(this)">
+    <div class="letter">3</div>
+    <div class="content">
+      <h3>Stats &amp; Summary Bar</h3>
+      <p>A header bar showing counts per level (e.g. 3 CRITICAL · 12 ERROR · 847 INFO), error rate, and time span of visible logs.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="export" onclick="toggleSelect(this)">
+    <div class="letter">4</div>
+    <div class="content">
+      <h3>Export</h3>
+      <p>Export the current filtered view to CSV, JSON, or plain text. Useful for sharing a subset of logs with a team or attaching to a ticket.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="detail" onclick="toggleSelect(this)">
+    <div class="letter">5</div>
+    <div class="content">
+      <h3>Detail Panel</h3>
+      <p>Press Enter on any row to expand a full detail view — complete JSON fields, stack trace, all context fields — without leaving the TUI.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="live" onclick="toggleSelect(this)">
+    <div class="letter">6</div>
+    <div class="content">
+      <h3>Live Follow Toggle</h3>
+      <p>A keybind (e.g. <kbd>F</kbd>) to switch between static view and live-follow mode. A visible indicator shows which mode is active. Auto-pauses when you scroll up.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="bookmarks" onclick="toggleSelect(this)">
+    <div class="letter">7</div>
+    <div class="content">
+      <h3>Bookmarks</h3>
+      <p>Mark rows of interest with <kbd>B</kbd> and jump between them. Useful during incident investigation to tag key events before exporting.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="keybinds" onclick="toggleSelect(this)">
+    <div class="letter">8</div>
+    <div class="content">
+      <h3>Keyboard Help Overlay</h3>
+      <p>Press <kbd>?</kbd> to show all keybindings in a modal. Essential for discoverability in a keyboard-driven TUI.</p>
+    </div>
+  </div>
+
+</div>

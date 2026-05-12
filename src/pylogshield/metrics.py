@@ -90,7 +90,7 @@ class LogMetricsHandler(logging.Handler):
             - ``start``: Start timestamp (monotonic)
         """
         with self._lock:
-            elapsed = max(0.001, self.elapsed_seconds())
+            elapsed = max(0.001, time.monotonic() - self._start)
             rates: Dict[str, Any] = {
                 lvl: cnt / elapsed for lvl, cnt in self._counts.items()
             }

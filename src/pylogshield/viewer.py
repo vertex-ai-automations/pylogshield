@@ -74,6 +74,7 @@ class LogViewer:
             )
         self.log_file = Path(log_file).expanduser().resolve()
         self.console = Console()
+        self._reader = _LogReader(self.log_file) if _HAS_READER else None
 
     def _tail_lines(self, limit: int) -> List[str]:
         """Read the last N lines from the log file efficiently.
@@ -91,8 +92,8 @@ class LogViewer:
         list of str
             The last `limit` lines from the file.
         """
-        if _HAS_READER:
-            return _LogReader(self.log_file)._tail_lines(limit)  # type: ignore[union-attr]
+        if self._reader is not None:
+            return self._reader._tail_lines(limit)
         # Fallback (should never occur in a normal install)
         if not self.log_file.exists():
             return []
@@ -117,8 +118,8 @@ class LogViewer:
             Tuple of (timestamp, levelname, message). Returns "N/A" for
             components that cannot be parsed.
         """
-        if _HAS_READER:
-            p = _LogReader(self.log_file)._parse_line(line)  # type: ignore[union-attr]
+        if self._reader is not None:
+            p = self._reader._parse_line(line)
             ts = p.timestamp if p.timestamp else "N/A"
             return ts, p.level, p.message
         # Fallback (should never occur in a normal install)

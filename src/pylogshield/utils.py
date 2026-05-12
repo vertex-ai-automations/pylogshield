@@ -95,7 +95,7 @@ class LogLevel(IntEnum):
         10
         """
         if isinstance(value, int):
-            if not (logging.DEBUG <= value <= logging.CRITICAL + 100):
+            if not (logging.NOTSET <= value <= logging.CRITICAL + 100):
                 raise ValueError(f"Invalid log level integer: {value}")
             return value
         val = value.strip().upper()

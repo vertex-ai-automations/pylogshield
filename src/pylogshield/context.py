@@ -31,6 +31,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+import threading
 import warnings
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar, Token
@@ -168,14 +169,18 @@ class ContextFilter(logging.Filter):
     def __init__(self, name: str = "") -> None:
         super().__init__(name)
         self._warned_keys: set = set()
+        self._warned_keys_lock = threading.Lock()
 
     def filter(self, record: logging.LogRecord) -> bool:
         ctx: Dict[str, Any] = get_log_context()
         safe_ctx: Dict[str, Any] = {}
         for key, val in ctx.items():
             if key in _LOGRECORD_RESERVED:
-                if key not in self._warned_keys:
-                    self._warned_keys.add(key)
+                with self._warned_keys_lock:
+                    should_warn = key not in self._warned_keys
+                    if should_warn:
+                        self._warned_keys.add(key)
+                if should_warn:
                     warnings.warn(
                         f"pylogshield: context key {key!r} conflicts with a "
                         f"standard LogRecord attribute and will be ignored. "

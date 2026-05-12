@@ -82,7 +82,7 @@ Main export is `get_logger()` - returns a singleton `PyLogShield` instance by na
 
 ### Key Patterns
 
-- All logging methods (`info`, `debug`, `warning`, `error`, `critical`, `exception`) accept `mask=True` to enable sensitive data redaction. `exception(mask=True)` scrubs exception `.args` strings but does **not** mask traceback local variables.
+- All logging methods (`info`, `debug`, `warning`, `error`, `critical`, `exception`) accept `mask=True` to enable sensitive data redaction. `exception(mask=True)` scrubs exception `.args` strings but does **not** mask traceback local variables. **Masking limitations:** URL-format credentials (`postgresql://user:pass@host`) and base64-encoded secrets are not matched by the regex pattern. Pass sensitive values as dict keys in `SENSITIVE_FIELDS` rather than inline strings for reliable redaction.
 - Async logging via `use_queue=True` uses `QueueHandler`/`QueueListener`; call `logger.shutdown()` to stop the background thread when done
 - By default, `PyLogShield` always writes a log file at `~/.logs/{name}.log` even without explicit config; pass `log_directory` and `log_file` to override
 - `enable_context_scrubber=True` by default — strips cloud credential prefixes (AWS_, AZURE_, GCP_, GOOGLE_, TOKEN) from all log records
@@ -104,6 +104,8 @@ Main export is `get_logger()` - returns a singleton `PyLogShield` instance by na
 - When `enable_json=True` and `enable_context=True`, `JsonFormatter` promotes context fields to the **top level** of the JSON envelope alongside `timestamp` and `level` — they are not nested
 - `log_exceptions(raise_exception=False)` suppresses the caught exception entirely and returns `None`; use this for non-critical operations where a failed call should not propagate
 - `caller_info` in decorators is captured at **decoration time** from `func.__code__`, so logged file/line always points to the function definition, not the call site
+- When `use_queue=True` and `queue_maxsize > 0`, records are **dropped silently** when the queue is full — a custom `_SilentQueueHandler` subclass catches `queue.Full` without writing to stderr
+- `queue_maxsize=0` (the default) is unbounded and never drops messages
 
 ## CLI Usage
 

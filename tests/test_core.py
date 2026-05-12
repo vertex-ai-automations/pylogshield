@@ -181,9 +181,7 @@ class TestPyLogShieldMasking:
         """Regex must match and mask empty quoted values like password: ''."""
         text = "login failed: password: ''"
         masked = basic_logger._mask(text)
-        assert "''" not in masked or "***" in masked, (
-            "Empty quoted password value was not masked"
-        )
+        assert "***" in masked, "Empty quoted password value was not masked"
 
 
 class TestPyLogShieldLogging:
