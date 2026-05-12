@@ -194,3 +194,4 @@ cover/
 
 # wandb
 wandb/
+.superpowers/
