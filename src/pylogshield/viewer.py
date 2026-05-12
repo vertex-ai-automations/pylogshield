@@ -300,7 +300,7 @@ class LogViewer:
                 except OSError:
                     last_size = 0  # type: ignore[arg-type]
 
-                with Live(table, **live_kwargs) as live:
+                with Live(table, **live_kwargs) as live:  # type: ignore[arg-type]
                     while True:
                         try:
                             cur_size = os.fstat(f.fileno()).st_size
