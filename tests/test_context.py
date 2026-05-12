@@ -38,8 +38,8 @@ def test_same_instance_warns_only_once():
     assert len(w) == 1, f"Expected 1 warning, got {len(w)}"
 
 
-import asyncio
-from pylogshield.context import async_log_context, get_log_context
+import asyncio  # noqa: E402
+from pylogshield.context import async_log_context, get_log_context  # noqa: E402
 
 
 async def _task(task_id: str, results: dict):
@@ -77,16 +77,20 @@ def test_nested_log_context_merges_fields():
 
         with log_context(tx_id="tx-99"):
             inner = get_log_context()
-            assert inner.get("service") == "payments", \
+            assert inner.get("service") == "payments", (
                 "Outer field 'service' must still be visible inside nested context"
-            assert inner.get("tx_id") == "tx-99", \
+            )
+            assert inner.get("tx_id") == "tx-99", (
                 "Inner field 'tx_id' must be visible inside nested context"
+            )
 
         after_inner = get_log_context()
-        assert after_inner.get("service") == "payments", \
+        assert after_inner.get("service") == "payments", (
             "Outer field 'service' must be restored after inner context exits"
-        assert "tx_id" not in after_inner, \
+        )
+        assert "tx_id" not in after_inner, (
             "Inner field 'tx_id' must not leak back into outer context"
+        )
 
     empty = get_log_context()
     assert empty == {}, "Context must be empty after all blocks exit"
@@ -104,7 +108,9 @@ def test_nested_log_context_restores_on_exception():
             pass
 
         ctx = get_log_context()
-        assert ctx.get("service") == "billing", \
+        assert ctx.get("service") == "billing", (
             "Outer field must survive an exception in inner context"
-        assert "crash" not in ctx, \
+        )
+        assert "crash" not in ctx, (
             "Inner field must not leak when inner context exits via exception"
+        )

@@ -20,7 +20,8 @@ from ._version import __version__
 
 # Optional middleware — requires pip install "pylogshield[fastapi]"
 try:
-    from pylogshield.middleware import PyLogShieldMiddleware
+    from pylogshield.middleware import PyLogShieldMiddleware  # noqa: F401
+
     _HAS_MIDDLEWARE = True
 except ImportError:
     _HAS_MIDDLEWARE = False

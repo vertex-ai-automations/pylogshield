@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -33,9 +32,21 @@ class TestLogViewer:
         """Create a sample JSON log file for testing."""
         log_file = temp_log_dir / "sample_json.log"
         entries = [
-            {"timestamp": "2024-01-01T10:00:00Z", "level": "INFO", "message": "JSON info"},
-            {"timestamp": "2024-01-01T10:00:01Z", "level": "ERROR", "message": "JSON error"},
-            {"timestamp": "2024-01-01T10:00:02Z", "level": "DEBUG", "message": "JSON debug"},
+            {
+                "timestamp": "2024-01-01T10:00:00Z",
+                "level": "INFO",
+                "message": "JSON info",
+            },
+            {
+                "timestamp": "2024-01-01T10:00:01Z",
+                "level": "ERROR",
+                "message": "JSON error",
+            },
+            {
+                "timestamp": "2024-01-01T10:00:02Z",
+                "level": "DEBUG",
+                "message": "JSON debug",
+            },
         ]
         lines = [json.dumps(e) for e in entries]
         log_file.write_text("\n".join(lines) + "\n")
@@ -70,11 +81,13 @@ class TestLogViewer:
         content = b"".join(lines_data)
         log_file.write_bytes(content)
 
-        assert log_file.stat().st_size > 1_000_000, f"File size: {log_file.stat().st_size}"
+        assert log_file.stat().st_size > 1_000_000, (
+            f"File size: {log_file.stat().st_size}"
+        )
 
         viewer = LogViewer(log_file)
         tail_lines = viewer._tail_lines(10)
-        tail_lines = [l.strip() for l in tail_lines if l.strip()]
+        tail_lines = [log_line.strip() for log_line in tail_lines if log_line.strip()]
         # Check the last few lines
         assert "line99999" in tail_lines[-1], f"Got: {tail_lines}"
 
@@ -89,17 +102,23 @@ class TestLogViewer:
         content = b"".join(lines_data)
         log_file.write_bytes(content)
 
-        assert log_file.stat().st_size > 1_000_000, f"File size: {log_file.stat().st_size}"
+        assert log_file.stat().st_size > 1_000_000, (
+            f"File size: {log_file.stat().st_size}"
+        )
 
         viewer = LogViewer(log_file)
         tail_lines = viewer._tail_lines(10)
         # Count the actual number of distinct lines returned
-        tail_lines = [l.strip() for l in tail_lines if l.strip()]
+        tail_lines = [log_line.strip() for log_line in tail_lines if log_line.strip()]
         # With CR-only endings, we should get 10 separate lines
         # The bug would cause them to be concatenated into fewer lines
-        assert len(tail_lines) >= 5, f"Expected at least 5 lines, got {len(tail_lines)}: {tail_lines}"
+        assert len(tail_lines) >= 5, (
+            f"Expected at least 5 lines, got {len(tail_lines)}: {tail_lines}"
+        )
         # Check the last line contains the highest line number
-        assert "line99999" in tail_lines[-1], f"Last line doesn't contain line99999. Got: {tail_lines[-1]}"
+        assert "line99999" in tail_lines[-1], (
+            f"Last line doesn't contain line99999. Got: {tail_lines[-1]}"
+        )
 
     def test_tail_nonexistent_file(self, temp_log_dir: Path) -> None:
         """Test tailing non-existent file."""
@@ -119,7 +138,9 @@ class TestLogViewer:
     def test_parse_json_line(self, sample_json_log_file: Path) -> None:
         """Test parsing JSON log format."""
         viewer = LogViewer(sample_json_log_file)
-        line = '{"timestamp": "2024-01-01T10:00:00Z", "level": "INFO", "message": "Test"}'
+        line = (
+            '{"timestamp": "2024-01-01T10:00:00Z", "level": "INFO", "message": "Test"}'
+        )
         ts, level, msg = viewer._parse_line(line)
         assert ts == "2024-01-01T10:00:00Z"
         assert level == "INFO"
@@ -188,7 +209,9 @@ class TestLogViewerLargeFile:
             for i in range(num_lines):
                 f.write(f"2024-01-01 10:00:{i:05d} - app - INFO - Line {i} {padding}\n")
 
-        assert log_file.stat().st_size > 1_000_000, f"File size: {log_file.stat().st_size}"
+        assert log_file.stat().st_size > 1_000_000, (
+            f"File size: {log_file.stat().st_size}"
+        )
 
         viewer = LogViewer(log_file)
         lines = viewer._tail_lines(100)

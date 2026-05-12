@@ -17,6 +17,7 @@ from pylogshield.tui.reader import LogReader, ParsedLine
 # Tests that use it are skipped when the extra is not installed.
 try:
     from pylogshield.tui.app import LogViewerApp as _LogViewerApp
+
     _HAS_TEXTUAL = True
 except ImportError:
     _LogViewerApp = None  # type: ignore[assignment]
@@ -24,6 +25,7 @@ except ImportError:
 
 
 # ── ParsedLine ────────────────────────────────────────────────────────────
+
 
 def test_parsed_line_fields():
     p = ParsedLine(
@@ -42,6 +44,7 @@ def test_parsed_line_fields():
 
 
 # ── LogReader._parse_line ─────────────────────────────────────────────────
+
 
 def test_parse_new_standard_format():
     reader = LogReader(Path(os.devnull))
@@ -96,6 +99,7 @@ def test_parse_empty_line():
 
 # ── LogReader.tail ────────────────────────────────────────────────────────
 
+
 def test_tail_returns_parsed_lines(tmp_path):
     log = tmp_path / "app.log"
     log.write_text(
@@ -138,7 +142,9 @@ def test_tail_large_file_multi_chunk(tmp_path):
         for i in range(num_lines)
     ]
     log.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    assert log.stat().st_size > 1_000_000, "File must exceed 1 MB to exercise chunked read"
+    assert log.stat().st_size > 1_000_000, (
+        "File must exceed 1 MB to exercise chunked read"
+    )
 
     reader = LogReader(log)
     results = reader.tail(limit=50)
@@ -155,6 +161,7 @@ def test_tail_large_file_multi_chunk(tmp_path):
 
 
 # ── LogReader.follow ──────────────────────────────────────────────────────
+
 
 def test_follow_delivers_new_lines(tmp_path):
     log = tmp_path / "app.log"
@@ -185,7 +192,12 @@ def test_follow_stop_terminates(tmp_path):
     log.write_text("")
 
     reader = LogReader(log)
-    t = threading.Thread(target=reader.follow, args=(lambda r: None,), kwargs={"interval": 0.05}, daemon=True)
+    t = threading.Thread(
+        target=reader.follow,
+        args=(lambda r: None,),
+        kwargs={"interval": 0.05},
+        daemon=True,
+    )
     t.start()
     time.sleep(0.1)
     reader.stop()
@@ -195,18 +207,42 @@ def test_follow_stop_terminates(tmp_path):
 
 # ── Exporter ──────────────────────────────────────────────────────────────
 
-from pylogshield.tui.exporter import Exporter
+from pylogshield.tui.exporter import Exporter  # noqa: E402
 
 
 @pytest.fixture
 def sample_rows() -> list:
     return [
-        ParsedLine("2026-05-09 00:12:04.221", "ERROR", "myapp", "payments", 88,
-                   "Payment failed order_id=ORD-12", "raw1", {}),
-        ParsedLine("2026-05-09 00:15:31.004", "WARNING", "myapp", "payments", 102,
-                   "Payment retry attempt=2", "raw2", {"user_id": 42}),
-        ParsedLine("2026-05-09 00:18:09.441", "INFO", "myapp", "payments", 55,
-                   "Payment ok", "raw3", {}),
+        ParsedLine(
+            "2026-05-09 00:12:04.221",
+            "ERROR",
+            "myapp",
+            "payments",
+            88,
+            "Payment failed order_id=ORD-12",
+            "raw1",
+            {},
+        ),
+        ParsedLine(
+            "2026-05-09 00:15:31.004",
+            "WARNING",
+            "myapp",
+            "payments",
+            102,
+            "Payment retry attempt=2",
+            "raw2",
+            {"user_id": 42},
+        ),
+        ParsedLine(
+            "2026-05-09 00:18:09.441",
+            "INFO",
+            "myapp",
+            "payments",
+            55,
+            "Payment ok",
+            "raw3",
+            {},
+        ),
     ]
 
 
@@ -266,8 +302,18 @@ def test_export_csv_headers(tmp_path, sample_rows):
 
 
 def test_export_html_escapes_content(tmp_path):
-    rows = [ParsedLine("2026-05-09 00:12:04.221", "ERROR", "myapp", "core", 1,
-                       "<script>alert('xss')</script>", "raw", {})]
+    rows = [
+        ParsedLine(
+            "2026-05-09 00:12:04.221",
+            "ERROR",
+            "myapp",
+            "core",
+            1,
+            "<script>alert('xss')</script>",
+            "raw",
+            {},
+        )
+    ]
     path = tmp_path / "out.html"
     Exporter(rows, path).to_html()
     content = path.read_text()
@@ -276,6 +322,7 @@ def test_export_html_escapes_content(tmp_path):
 
 
 # ── LogViewerApp._parse_ts ────────────────────────────────────────────────
+
 
 @pytest.mark.skipif(not _HAS_TEXTUAL, reason="pylogshield[tui] not installed")
 class TestParseTsMethod:
@@ -304,7 +351,7 @@ class TestParseTsMethod:
         dt = self._parse("2026-05-09 00:12:04.221")
         assert dt.year == 2026
         assert dt.hour == 0
-        assert dt.tzinfo is not None   # should be UTC-filled
+        assert dt.tzinfo is not None  # should be UTC-filled
 
     def test_old_standard_format(self):
         """Old plain-text formatter uses comma for milliseconds."""
@@ -314,12 +361,14 @@ class TestParseTsMethod:
 
     def test_unparseable_returns_datetime_min(self):
         from datetime import datetime
+
         dt = self._parse("not a timestamp at all")
         assert dt == datetime.min.replace(tzinfo=timezone.utc)
 
     def test_all_formats_comparable_for_filtering(self):
         """A JSON timestamp and a plain-text timestamp for the same moment must compare equal."""
-        from datetime import datetime, timezone
+        from datetime import timezone
+
         dt_json = self._parse("2026-05-09T05:29:39.884+00:00")
         dt_plain = self._parse("2026-05-09 05:29:39.884")
         # Both should resolve to the same UTC moment
@@ -329,6 +378,7 @@ class TestParseTsMethod:
 
 
 # ── LogReader follow restart ──────────────────────────────────────────────
+
 
 def test_follow_restarts_after_stop(tmp_path):
     """LogReader.follow() must work correctly on a second call after stop()."""

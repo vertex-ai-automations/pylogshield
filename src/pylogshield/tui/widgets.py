@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from collections import Counter
 from pathlib import Path
-from typing import List, Optional
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -12,6 +11,7 @@ from textual.widgets import Input, Label, Static
 
 
 # ── TopBar ────────────────────────────────────────────────────────────────
+
 
 class TopBar(Static):
     """Search input + stats + live/static indicator in one compact bar."""
@@ -82,10 +82,11 @@ class TopBar(Static):
         else:
             lbl.remove_class("active")
 
-import re as _re
-from textual.message import Message
-from textual.widgets import DataTable
-from rich.text import Text
+
+import re as _re  # noqa: E402
+from textual.message import Message  # noqa: E402
+from textual.widgets import DataTable  # noqa: E402
+from rich.text import Text  # noqa: E402
 
 _LEVEL_STYLES = {
     "CRITICAL": "bold red",
@@ -120,9 +121,7 @@ class LogTable(Static):
 
     def on_mount(self) -> None:
         tbl = self.query_one(DataTable)
-        tbl.add_columns(
-            "Timestamp", "Level", "Logger", "Location", "Message"
-        )
+        tbl.add_columns("Timestamp", "Level", "Logger", "Location", "Message")
 
     def load_rows(
         self,
@@ -192,10 +191,10 @@ class LogTable(Static):
             self.post_message(self.ScrolledUp())
 
 
-import json as _json
-from rich.markup import escape as _escape
-from textual.screen import ModalScreen
-from textual.widgets import Button, Checkbox, RadioButton, RadioSet
+import json as _json  # noqa: E402
+from rich.markup import escape as _escape  # noqa: E402
+from textual.screen import ModalScreen  # noqa: E402
+from textual.widgets import Button, Checkbox, RadioButton, RadioSet  # noqa: E402
 
 
 class FilterChipBar(Static):
@@ -226,16 +225,27 @@ class FilterChipBar(Static):
 
     def update_chips(self, state) -> None:
         from pylogshield.tui.app import _ALL_LEVELS
+
         self._state = state
         chips = []
         if state.levels != _ALL_LEVELS:
             min_sev = min(
-                {"CRITICAL": 50, "ERROR": 40, "WARNING": 30,
-                 "INFO": 20, "DEBUG": 10}.get(l, 0)
-                for l in state.levels
+                {
+                    "CRITICAL": 50,
+                    "ERROR": 40,
+                    "WARNING": 30,
+                    "INFO": 20,
+                    "DEBUG": 10,
+                }.get(log_line, 0)
+                for log_line in state.levels
             )
-            label = {50: "CRITICAL+", 40: "ERROR+", 30: "WARNING+",
-                     20: "INFO+", 10: "DEBUG+"}.get(min_sev, "custom")
+            label = {
+                50: "CRITICAL+",
+                40: "ERROR+",
+                30: "WARNING+",
+                20: "INFO+",
+                10: "DEBUG+",
+            }.get(min_sev, "custom")
             chips.append(label)
         if state.time_range != "all":
             chips.append(state.time_range)
@@ -272,6 +282,7 @@ class DetailModal(ModalScreen):
 
     def compose(self) -> ComposeResult:
         from textual.containers import Vertical
+
         r = self._row
         with Vertical():
             yield Label("Row Detail", classes="detail-title")
@@ -282,7 +293,10 @@ class DetailModal(ModalScreen):
                 ("Location", f"{r.module}:{r.lineno}" if r.module else "N/A"),
                 ("Message", r.message),
             ]:
-                yield Label(f"[bold]{lbl}:[/bold]  {_escape(str(value))}", classes="detail-field")
+                yield Label(
+                    f"[bold]{lbl}:[/bold]  {_escape(str(value))}",
+                    classes="detail-field",
+                )
             if r.extra:
                 yield Label(
                     f"[bold]Extra:[/bold]  {_escape(_json.dumps(r.extra, default=str))}",
@@ -318,6 +332,7 @@ class FilterPanel(ModalScreen):
 
     def compose(self) -> ComposeResult:
         from textual.containers import Vertical
+
         with Vertical():
             yield Label("Filter Panel", classes="panel-title")
 
@@ -361,10 +376,12 @@ class FilterPanel(ModalScreen):
 
     def action_reset_filters(self) -> None:
         from pylogshield.tui.app import FilterState
+
         self.dismiss(FilterState())
 
     def _collect_and_dismiss(self) -> None:
         from pylogshield.tui.app import FilterState
+
         levels = set()
         for lvl in ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]:
             cb = self.query_one(f"#lvl-{lvl.lower()}", Checkbox)
@@ -372,8 +389,12 @@ class FilterPanel(ModalScreen):
                 levels.add(lvl)
 
         time_range = "all"
-        for lbl, value in [("All time", "all"), ("Last 1h", "1h"),
-                             ("Last 6h", "6h"), ("Last 24h", "24h")]:
+        for lbl, value in [
+            ("All time", "all"),
+            ("Last 1h", "1h"),
+            ("Last 6h", "6h"),
+            ("Last 24h", "24h"),
+        ]:
             rb = self.query_one(f"#tr-{value}", RadioButton)
             if rb.value:
                 time_range = value
@@ -389,7 +410,8 @@ class FilterPanel(ModalScreen):
         )
         self.dismiss(new_state)
 
-from datetime import date as _date
+
+from datetime import date as _date  # noqa: E402
 
 
 class ExportModal(ModalScreen):
@@ -412,9 +434,9 @@ class ExportModal(ModalScreen):
     """
 
     _FORMATS = [
-        ("csv",  "CSV (Excel-compatible)"),
+        ("csv", "CSV (Excel-compatible)"),
         ("json", "JSON"),
-        ("txt",  "Plain text"),
+        ("txt", "Plain text"),
         ("html", "HTML report"),
     ]
 
@@ -425,6 +447,7 @@ class ExportModal(ModalScreen):
 
     def compose(self) -> ComposeResult:
         from textual.containers import Vertical
+
         stem = self._log_path.stem
         today = _date.today().isoformat()
         with Vertical():
@@ -452,10 +475,15 @@ class ExportModal(ModalScreen):
         today = _date.today().isoformat()
         out = Path(f"{stem}-export-{today}.{ext}")
         from pylogshield.tui.exporter import Exporter
+
         exp = Exporter(self._rows, out)
         try:
-            {"csv": exp.to_csv, "json": exp.to_json,
-             "txt": exp.to_text, "html": exp.to_html}[ext]()
+            {
+                "csv": exp.to_csv,
+                "json": exp.to_json,
+                "txt": exp.to_text,
+                "html": exp.to_html,
+            }[ext]()
             status = self.query_one("#export-status", Label)
             status.update(f"Saved → {out.resolve()}")
             status.add_class("visible")
@@ -485,28 +513,38 @@ class HelpModal(ModalScreen):
     """
 
     _BINDINGS_TABLE = [
-        ("Navigation", [
-            ("↑ ↓", "Move between rows"),
-            ("PgUp PgDn", "Page up / down"),
-            ("Home / End", "First / last row (End resumes follow)"),
-            ("Enter", "Expand row detail"),
-        ]),
-        ("Search & Filter", [
-            ("/", "Focus search bar"),
-            ("Ctrl+R", "Toggle regex mode"),
-            ("Esc", "Clear search / close modal"),
-            ("Ctrl+F", "Open filter panel"),
-        ]),
-        ("View & Actions", [
-            ("F", "Toggle live follow"),
-            ("E", "Open export modal"),
-            ("?", "Show / hide this help"),
-            ("Q / Ctrl+C", "Quit"),
-        ]),
+        (
+            "Navigation",
+            [
+                ("↑ ↓", "Move between rows"),
+                ("PgUp PgDn", "Page up / down"),
+                ("Home / End", "First / last row (End resumes follow)"),
+                ("Enter", "Expand row detail"),
+            ],
+        ),
+        (
+            "Search & Filter",
+            [
+                ("/", "Focus search bar"),
+                ("Ctrl+R", "Toggle regex mode"),
+                ("Esc", "Clear search / close modal"),
+                ("Ctrl+F", "Open filter panel"),
+            ],
+        ),
+        (
+            "View & Actions",
+            [
+                ("F", "Toggle live follow"),
+                ("E", "Open export modal"),
+                ("?", "Show / hide this help"),
+                ("Q / Ctrl+C", "Quit"),
+            ],
+        ),
     ]
 
     def compose(self) -> ComposeResult:
-        from textual.containers import Horizontal, Vertical
+        from textual.containers import Vertical
+
         with Vertical():
             yield Label("PyLogShield — Keyboard Reference", classes="help-title")
             with Horizontal():
