@@ -8,17 +8,27 @@ PyLogShield is a Python logging library extending the standard `logging` module 
 
 ## Build & Development Commands
 
-Requires Python 3.8–3.12.
+Declared `requires-python = ">=3.8"` in `pyproject.toml`; CI matrix tests 3.9–3.12.
 
 ```bash
-# Install in development mode
+# Install in development mode (core only)
 pip install -e .
 
-# Install dependencies
-pip install -r requirements.txt
+# Install with all optional extras (required to run the full test suite)
+pip install -e ".[tui,fastapi]"
+
+# Install test dependencies
+pip install -r tests/requirements.txt
 
 # Run tests
 pytest tests/ -v --tb=short
+
+# Run with coverage
+pytest tests/ -v --cov=src/pylogshield --cov-report=term-missing
+
+# Run specific test file / single test
+pytest tests/test_core.py -v
+pytest tests/test_core.py::TestPyLogShieldMasking::test_mask_dict_password -v
 
 # Build documentation locally
 mkdocs serve
@@ -33,7 +43,7 @@ python -m build
 
 - **`core.py`** - `PyLogShield` class: Main logger extending `logging.Logger`. Handles message masking, rate limiting integration, and handler setup. Entry point for all logging calls.
 
-- **`config.py`** - Thread-safe sensitive field registry with compiled regex caching. Fields like `password`, `token`, `api_key` are masked by default. Pattern invalidates on field changes.
+- **`config.py`** - Thread-safe sensitive field registry with compiled regex caching. Fields like `password`, `token`, `api_key` are masked by default. All fields are stored and matched **lowercase** (`add_sensitive_fields` normalizes input). Pattern invalidates on field changes. The masking regex matches both `key: value` and `key=value` forms (case-insensitive, optional quotes around value).
 
 - **`filters.py`** - Two filter types:
   - `KeywordFilter`: Include/exclude logs by keyword
@@ -105,26 +115,7 @@ pylogshield levels  # List supported log levels
 
 ## Testing
 
-Tests are in `tests/` directory:
-
-```bash
-# Install test dependencies
-pip install -r tests/requirements.txt
-
-# Run all tests
-pytest tests/ -v --tb=short
-
-# Run with coverage
-pytest tests/ -v --cov=src/pylogshield --cov-report=term-missing
-
-# Run specific test file
-pytest tests/test_core.py -v
-
-# Run specific test
-pytest tests/test_core.py::TestPyLogShieldMasking::test_mask_dict_password -v
-```
-
-`asyncio_mode = "auto"` is set in `pyproject.toml` — async test functions run as asyncio tests automatically without `@pytest.mark.asyncio`.
+Tests are in `tests/` directory. `asyncio_mode = "auto"` is set in `pyproject.toml` — async test functions run without `@pytest.mark.asyncio`. `test_tui_reader.py` requires the `tui` extra; `test_handlers.py` requires the `fastapi` extra — install both before running the full suite.
 
 Test modules:
 - `test_core.py` - PyLogShield class, masking, logging operations
