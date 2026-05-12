@@ -28,7 +28,7 @@ try:
     _HAS_READER = True
 except ImportError:  # pragma: no cover
     _HAS_READER = False  # type: ignore[misc]
-    _LogReader = None  # type: ignore[assignment]  # type: ignore[misc]
+    _LogReader = None  # type: ignore[assignment, misc]
 
 # Per-level Rich styles — used for the Level column in the log table.
 _LEVEL_STYLES: dict = {
