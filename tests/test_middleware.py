@@ -15,6 +15,7 @@ from pylogshield.middleware import PyLogShieldMiddleware, _sanitize_request_id
 
 # ── _sanitize_request_id ──────────────────────────────────────────────────────
 
+
 class TestSanitizeRequestId:
     def test_valid_uuid_passes_through(self):
         val = "550e8400-e29b-41d4-a716-446655440000"
@@ -56,6 +57,7 @@ class TestSanitizeRequestId:
 
 # ── Middleware integration ────────────────────────────────────────────────────
 
+
 def _make_app(logger: PyLogShield, **middleware_kwargs) -> Starlette:
     async def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("ok")
@@ -63,10 +65,12 @@ def _make_app(logger: PyLogShield, **middleware_kwargs) -> Starlette:
     async def boom(request: Request) -> PlainTextResponse:
         raise RuntimeError("intentional error")
 
-    app = Starlette(routes=[
-        Route("/", homepage),
-        Route("/boom", boom),
-    ])
+    app = Starlette(
+        routes=[
+            Route("/", homepage),
+            Route("/boom", boom),
+        ]
+    )
     app.add_middleware(PyLogShieldMiddleware, logger=logger, **middleware_kwargs)
     return app
 
@@ -124,7 +128,9 @@ class TestMiddlewareIntegration:
         assert "200" not in log_text
 
     def test_error_always_logged(self, logger, tmp_path):
-        client = TestClient(_make_app(logger, log_requests=False), raise_server_exceptions=False)
+        client = TestClient(
+            _make_app(logger, log_requests=False), raise_server_exceptions=False
+        )
         client.get("/boom")
         log_text = (tmp_path / "test_mw.log").read_text()
         assert "failed" in log_text.lower() or "error" in log_text.lower()

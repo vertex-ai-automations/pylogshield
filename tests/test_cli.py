@@ -26,10 +26,21 @@ def log_file(tmp_path: Path) -> Path:
 @pytest.fixture()
 def json_log_file(tmp_path: Path) -> Path:
     import json
+
     f = tmp_path / "app.json.log"
     lines = [
-        {"timestamp": "2026-05-12T10:00:00.001+00:00", "level": "INFO", "logger": "app", "message": "started"},
-        {"timestamp": "2026-05-12T10:00:01.002+00:00", "level": "ERROR", "logger": "app", "message": "crashed"},
+        {
+            "timestamp": "2026-05-12T10:00:00.001+00:00",
+            "level": "INFO",
+            "logger": "app",
+            "message": "started",
+        },
+        {
+            "timestamp": "2026-05-12T10:00:01.002+00:00",
+            "level": "ERROR",
+            "logger": "app",
+            "message": "crashed",
+        },
     ]
     f.write_text("\n".join(json.dumps(entry) for entry in lines) + "\n")
     return f
@@ -45,12 +56,16 @@ class TestViewCommand:
         assert result.exit_code != 0
 
     def test_view_level_filter(self, log_file):
-        result = runner.invoke(app, ["view", "--file", str(log_file), "--level", "ERROR"])
+        result = runner.invoke(
+            app, ["view", "--file", str(log_file), "--level", "ERROR"]
+        )
         assert result.exit_code == 0
         assert "ERROR" in result.output
 
     def test_view_keyword_filter(self, log_file):
-        result = runner.invoke(app, ["view", "--file", str(log_file), "--keyword", "memory"])
+        result = runner.invoke(
+            app, ["view", "--file", str(log_file), "--keyword", "memory"]
+        )
         assert result.exit_code == 0
         assert "memory" in result.output.lower()
 
